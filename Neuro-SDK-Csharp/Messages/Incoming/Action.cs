@@ -1,17 +1,39 @@
+using Neuro_SDK_Csharp.Actions;
 using Neuro_SDK_Csharp.Messages.API;
 using Neuro_SDK_Csharp.Websocket;
 
 namespace Neuro_SDK_Csharp.Messages.Incoming;
 
-public class Action : InterIncomingMessageHandler
+public class Action : IncomingMessageHandler<Action.ResultData>
 {
-    public virtual ExecutionResult Validate()
+    public class ResultData
     {
-        return new ExecutionResult(true, "asd");
+        public ResultData(string id) => Id = id;
+
+        public string Id;
+        public INeuroAction? Action;
+        public object? Data;
     }
     
-    private bool CanHandle(string command)
+    public override bool CanHandle(string command)
     {
         return command == "action";
+    }
+
+    protected override ExecutionResult Validate(string command, IncomingData incomingData, out ResultData? resultData)
+    {
+        resultData = null;
+        return ExecutionResult.Success("asdf");
+    }
+
+    //TODO: Implement these
+    protected override void ReportResult(ResultData? resultData, ExecutionResult executionResult)
+    {
+        throw new NotImplementedException();
+    }
+
+    protected override Task Execute(ResultData? incomingData)
+    {
+        throw new NotImplementedException();
     }
 }
