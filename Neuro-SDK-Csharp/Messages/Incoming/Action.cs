@@ -1,6 +1,9 @@
+using System.Security.AccessControl;
+using System.Text.Json.Serialization.Metadata;
 using Neuro_SDK_Csharp.Actions;
 using Neuro_SDK_Csharp.Messages.API;
 using Neuro_SDK_Csharp.Websocket;
+using Newtonsoft.Json.Linq;
 
 namespace Neuro_SDK_Csharp.Messages.Incoming;
 
@@ -22,18 +25,76 @@ public class Action : IncomingMessageHandler<Action.ResultData>
 
     protected override ExecutionResult Validate(string command, IncomingData incomingData, out ResultData? resultData)
     {
-        resultData = null;
-        return ExecutionResult.Success("asdf");
+        if (incomingData.Data == null)
+        {
+            resultData = null;
+            return ExecutionResult.ServerFailure("The action failed as there is no data.");
+        }
+
+        string? actionId = incomingData.Data["id"]?.Value<string>("id");
+
+        if (string.IsNullOrEmpty(actionId))
+        {
+            resultData = null;
+            return ExecutionResult.ServerFailure("The action failed as there is not ID");
+        }
+
+        resultData = new ResultData(actionId);
+        try
+        {
+            string? actionName = incomingData.Data?.Value<string>("name");
+            string? actionStringifiedData = incomingData.Data?.Value<string>("data");
+
+            if (string.IsNullOrEmpty(actionName))
+            {
+                resultData = null;
+                return ExecutionResult.ServerFailure("Action has failed as there is no name");
+            }
+
+            INeuroAction? registeredAction = NeuroActionHandler.GetRegistered(actionName);
+
+            if (registeredAction == null)
+            {
+                if (NeuroActionHandler.IsRecentlyUnregistered(actionName))
+                {
+                    return ExecutionResult.Failure("Action failed unregister");
+                }
+
+                return ExecutionResult.Failure("action failed unknown action");
+            }
+
+            resultData.Action = registeredAction;
+            
+            if (!ActionData.TryParse(actionStringifiedData, out ActionData? actionData))
+                return ExecutionResult.Failure("Action Failed Invalid JSON");
+
+            ExecutionResult actionValidationResult =
+                registeredAction.Validate(actionData!, out object? resultActionData);
+            resultData.Data = resultActionData;
+
+            return actionValidationResult;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+
+            return ExecutionResult.Failure("Action Failed Caught");
+        }
     }
 
-    //TODO: Implement these
     protected override void ReportResult(ResultData? resultData, ExecutionResult executionResult)
     {
-        throw new NotImplementedException();
+        if (resultData == null)
+        {
+            ExecutionResult.Failure("Action.ReportResult received null data.");
+            return;
+        }
+        
+        // send websocket stuff
     }
 
     protected override Task Execute(ResultData? incomingData)
     {
-        throw new NotImplementedException();
+        return incomingData!.Action!.Execute(incomingData.Data);
     }
 }
