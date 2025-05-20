@@ -10,6 +10,6 @@ public class OutgoingMessageHandler
     public virtual bool Merge(OutgoingMessageHandler other) => false;
 
     public WsMessage GetWsMessage() => new(Command, Data,
-        WebsocketHandler.Game ??
+        WebsocketHandler.Instance!.Game ??
         throw new InvalidOperationException("Cannot get WsMessage without a Websocket Instance"));
 }
