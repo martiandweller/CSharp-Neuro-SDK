@@ -1,0 +1,32 @@
+using Neuro_SDK_Csharp.Actions;
+using Neuro_SDK_Csharp.Messages.API;
+
+namespace Neuro_SDK_Csharp.Messages.Outgoing;
+
+public sealed class ActionsRegister : OutgoingMessageHandler
+{
+    protected override string Command => "actions/register";
+
+    public ActionsRegister(IEnumerable<INeuroAction> actions)
+    {
+        Actions = actions.Select(action => action.GetWsAction()).ToList();
+    }
+
+    public ActionsRegister(params INeuroAction[] actions) : this((IEnumerable<INeuroAction>)actions)
+    {
+    }
+
+    public readonly List<WSAction> Actions;
+
+    public override bool Merge(OutgoingMessageHandler handler)
+    {
+        if (handler is ActionsRegister actionsRegister)
+        {
+            Actions.RemoveAll(existingWsa => actionsRegister.Actions.Any(newWsa => newWsa.Name == existingWsa.Name));
+            Actions.AddRange(actionsRegister.Actions);
+            return true;
+        }
+
+        return false;
+    }
+}

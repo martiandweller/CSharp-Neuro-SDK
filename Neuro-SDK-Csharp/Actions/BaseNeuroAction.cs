@@ -35,8 +35,7 @@ public abstract class BaseNeuroAction : INeuroAction
     
     public virtual WSAction GetWsAction()
     {
-        // return new WSAction(Name, Description, Schema); need to make this
-        throw new NotImplementedException();
+        return new WSAction(Name, Description, Schema);
     }
 
     protected abstract ExecutionResult Validate(ActionData actionData, out object? ResultData);

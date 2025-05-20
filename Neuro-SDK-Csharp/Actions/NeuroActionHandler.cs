@@ -1,3 +1,6 @@
+using Neuro_SDK_Csharp.Messages.Outgoing;
+using Neuro_SDK_Csharp.Websocket;
+
 namespace Neuro_SDK_Csharp.Actions;
 
 public sealed class NeuroActionHandler
@@ -12,21 +15,21 @@ public sealed class NeuroActionHandler
 
     private void OnApplicationQuit()
     { 
-        // Websocket.  // do this later
+        WebsocketHandler.Instance!.SendImmediate(new ActionsUnregister(_currentRegisteredActions));
         _currentRegisteredActions = null!;
     }
 
-    public static void RegiserActions(IReadOnlyCollection<INeuroAction> newActions)
+    public static void RegisterActions(IReadOnlyCollection<INeuroAction> newActions)
     {
         _currentRegisteredActions.RemoveAll(
             oldAction => newActions.Any(newAction => oldAction.Name == newAction.Name));
         _dyingActions.RemoveAll(oldAction => newActions.Any(newAction => oldAction.Name == newAction.Name));
         _currentRegisteredActions.AddRange(newActions);
-        // add websocket stuff later here
+        WebsocketHandler.Instance!.Send(new ActionsRegister(newActions));
     }
 
     public static void RegisterActions(params INeuroAction[] newActions)
-        => RegisterActions(newActions); // (IReadOnlyCollection<INeuroAction>) // cant get this to work
+        => RegisterActions((IReadOnlyCollection<INeuroAction>) newActions); // it recursive :)
 
     public static void UnregisterActions(IEnumerable<string> removeActionsList)
     {
@@ -37,7 +40,7 @@ public sealed class NeuroActionHandler
         _dyingActions.AddRange(actionsToRemove);
         _ = RemoveActions(); // should replicate .Forget with unitask
         
-        // Websocket stuff
+        WebsocketHandler.Instance!.Send(new ActionsUnregister(removeActionsList));
         
         return;
 
@@ -59,8 +62,7 @@ public sealed class NeuroActionHandler
 
     public static void ResendRegisteredActions()
     {
-        // websocket stuff
-        return;
+        WebsocketHandler.Instance!.Send(new ActionsRegister(_currentRegisteredActions));
     }
     
 }
