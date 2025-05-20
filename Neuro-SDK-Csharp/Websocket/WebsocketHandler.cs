@@ -1,33 +1,177 @@
 using System.Net;
 using System.Net.WebSockets;
+using System.Security.Cryptography;
 using System.Text;
+using Neuro_SDK_Csharp.Json;
+using Neuro_SDK_Csharp.Messages.API;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Neuro_SDK_Csharp.Websocket;
 
 public class WebsocketHandler
 {
-    private ClientWebSocket _webSocket = new ClientWebSocket();
-    private string? _uriString = "";
+    private const float ReconnectInterval = 3;
+
+    private static WebsocketHandler? _instance;
+
+    public static WebsocketHandler? Instance
+    {
+        get
+        {
+            // if (!_instance)
+            // {
+            //     ExecutionResult.Failure("WebsocketHandlerInstance was accessed without an instance being present");
+            // }
+            return _instance;
+        }
+        private set => _instance = value;
+    }
+
+    //  ws://localhost:8001/ws/
+
+    private ClientWebSocket? _webSocket = new ClientWebSocket();
+
+    public string Game = null!; // will be used for Messages
+    public MessageQueue MessageQueue = null!;
+    public CommandHandler CommandHandler = null!;
+    
+    private string? _uriString = ""; // this will be changed to be able to be changed through file in future
     private Uri _uri;
 
-    public string Game = ""; // will be used for Messages
-    
-    public async void StartServer(string urlScheme,string urlHost, string urlPort)
+
+    private void Start() => StartWs();
+
+    //  string urlScheme, string urlHost, string urlPort
+
+    private async Task StartWs()
     {
-        if (String.IsNullOrEmpty(_uriString))
+        try
         {
-            try
-            {
-                string uriSchema = $"{urlScheme}://{urlHost}:{urlPort}/$env/NEURO_SDK_WS_URL";
-                _uri = new Uri(uriSchema);
-            }
-            catch (Exception e)
-            {
-                // should be fine
-            }
+            if (_webSocket!.State is WebSocketState.Open or WebSocketState.Connecting)
+                await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
         }
 
-        await _webSocket.ConnectAsync(_uri,CancellationToken.None);
-        
+        Uri? websocketUri = null;
+
+        if (websocketUri == null)
+        {
+            websocketUri = new Uri("ws://localhost:8001/ws/"); // this is temporary
+        }
+
+        // if (_uriString is null or "")
+        // {
+        //     try
+        //     {
+        //         HttpClient client = new HttpClient();
+        //         string responseBody = await client.GetStringAsync(_uriString);
+        //     }
+        //     catch (Exception e)
+        //     {
+        //         Console.WriteLine(e);
+        //         throw;
+        //     }
+        // }
+
+        if (_uriString is null or "")
+        {
+            _uriString = Environment.GetEnvironmentVariable("NEURO_SDK_WS_URL", EnvironmentVariableTarget.Process) ??
+                         Environment.GetEnvironmentVariable("NEURO_SDK_WS_URL", EnvironmentVariableTarget.User) ??
+                         Environment.GetEnvironmentVariable("NEURO_SDK_WS_URL", EnvironmentVariableTarget.Machine);
+            Console.WriteLine(_uriString);
+        }
+
+        if (_uriString is null or "")
+        {
+            string errorMessage =
+                "Could not get websocket URL. You need to set the NEURO_SDK_WS_URL environment variable";
+
+            Console.WriteLine(errorMessage);
+            return;
+        }
+
+        _webSocket = new ClientWebSocket();
+        websocketUri = new Uri(_uriString);
+
+        await _webSocket.ConnectAsync(websocketUri, CancellationToken.None);
+    }
+
+    private async Task SendTask(OutgoingMessageHandler handler)
+    {
+        string message = JsonSerialize.Serialize(handler.GetWsMessage());
+
+        Console.WriteLine($"Sending the Ws Message {message}");
+
+        var sendBytes = Encoding.UTF8.GetBytes(message);
+
+        try
+        {
+            await _webSocket!.SendAsync(sendBytes, WebSocketMessageType.Text, false, CancellationToken.None);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            MessageQueue.Enqueue(handler);
+        }
+    }
+
+    public void Send(OutgoingMessageHandler messageHandler) => MessageQueue.Enqueue(messageHandler);
+
+    // async void is bad, but I'm just gonna pray this works
+    public async void SendImmediate(OutgoingMessageHandler messageHandler)
+    {
+        string message = JsonSerialize.Serialize(messageHandler.GetWsMessage());
+
+        if (_webSocket.State is not WebSocketState.Open)
+        {
+            Console.WriteLine($"Websocket is not open. Could not send message: {message}");
+        }
+
+        Console.WriteLine($"Sending Immediate message {message}");
+
+        var sendBytes = Encoding.UTF8.GetBytes(message);
+        await _webSocket!.SendAsync(sendBytes, WebSocketMessageType.Text, false, CancellationToken.None);
+    }
+
+    private async Task ReceiveMessage(string messageData)
+    {
+        try
+        {
+            JObject message = JObject.Parse(messageData);
+            string? command = message["command"]?.Value<string>();
+            IncomingData data = new(message["data"]);
+
+            if (command == null)
+            {
+                Console.WriteLine($"Command could not be deserialized");
+                return;
+            }
+
+            CommandHandler.Handle(command, data);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Got invalid message");
+            Console.WriteLine(e);
+        }
     }
 }
+
+
+// private bool TryGetResult(HttpRequestMessage request.out string result)
+    // {
+    //     request.
+    //     if (request is { isDone: true, isHttpError: false, isNetworkError: false})
+    //     {
+    //         result = request.GetResponse();
+    //         return true;
+    //     }
+    //
+    //     return false;
+    // }
+    
