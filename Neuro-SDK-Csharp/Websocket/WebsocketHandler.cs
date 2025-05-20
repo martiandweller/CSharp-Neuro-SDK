@@ -1,10 +1,7 @@
-using System.Net;
 using System.Net.WebSockets;
-using System.Security.Cryptography;
 using System.Text;
 using Neuro_SDK_Csharp.Json;
 using Neuro_SDK_Csharp.Messages.API;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace Neuro_SDK_Csharp.Websocket;
@@ -162,6 +159,7 @@ public class WebsocketHandler
     }
 }
 
+// too dumb to make this work
 
 // private bool TryGetResult(HttpRequestMessage request.out string result)
     // {
