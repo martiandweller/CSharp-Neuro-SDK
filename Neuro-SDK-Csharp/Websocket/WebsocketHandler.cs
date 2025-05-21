@@ -16,10 +16,8 @@ public class WebsocketHandler
     {
         get
         {
-            // if (!_instance)
-            // {
-            //     ExecutionResult.Failure("WebsocketHandlerInstance was accessed without an instance being present");
-            // }
+            if (_instance is null)
+                ExecutionResult.Failure("WebsocketHandlerInstance was accessed without an instance being present");
             return _instance;
         }
         private set => _instance = value;
@@ -32,7 +30,7 @@ public class WebsocketHandler
     public string Game = null!; // will be used for Messages
     public MessageQueue MessageQueue = null!;
     public CommandHandler CommandHandler = null!;
-    
+
     private string? _uriString = ""; // this will be changed to be able to be changed through file in future
     private Uri _uri;
 
@@ -41,8 +39,11 @@ public class WebsocketHandler
 
     //  string urlScheme, string urlHost, string urlPort
 
-    private async Task StartWs()
+    public async Task StartWs()
     {
+        Console.WriteLine("This is start of Ws");
+        Instance = this;
+
         try
         {
             if (_webSocket!.State is WebSocketState.Open or WebSocketState.Connecting)
@@ -58,7 +59,7 @@ public class WebsocketHandler
 
         if (websocketUri == null)
         {
-            websocketUri = new Uri("ws://localhost:8001/ws/"); // this is temporary
+            websocketUri = new Uri("ws://localhost:8000/ws/"); // this is temporary
         }
 
         // if (_uriString is null or "")
@@ -83,6 +84,10 @@ public class WebsocketHandler
             Console.WriteLine(_uriString);
         }
 
+        _uriString = "ws://localhost:8000/ws/";
+
+        Console.WriteLine($"This is _uriString test: {_uriString}");
+
         if (_uriString is null or "")
         {
             string errorMessage =
@@ -94,8 +99,20 @@ public class WebsocketHandler
 
         _webSocket = new ClientWebSocket();
         websocketUri = new Uri(_uriString);
+        
+        try
+        {
+            await _webSocket.ConnectAsync(websocketUri, CancellationToken.None);
 
-        await _webSocket.ConnectAsync(websocketUri, CancellationToken.None);
+            Console.WriteLine($"Starting Task");
+
+            _ = Task.Run(ReceiveMessage);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
     }
 
     private async Task SendTask(OutgoingMessageHandler handler)
@@ -135,29 +152,69 @@ public class WebsocketHandler
         await _webSocket!.SendAsync(sendBytes, WebSocketMessageType.Text, false, CancellationToken.None);
     }
 
-    private async Task ReceiveMessage(string messageData)
+    private async Task ReceiveMessage()
     {
+        Console.WriteLine($"Start of ReceiveMessage");
+
+        var buffer = new byte[1024 * 4];
+
         try
         {
-            JObject message = JObject.Parse(messageData);
-            string? command = message["command"]?.Value<string>();
-            IncomingData data = new(message["data"]);
-
-            if (command == null)
+            Console.WriteLine($"Start of Try");
+            
+            while (_webSocket.State == WebSocketState.Open)
             {
-                Console.WriteLine($"Command could not be deserialized");
-                return;
-            }
+                var result = await _webSocket.ReceiveAsync(buffer, CancellationToken.None);
+                Console.WriteLine($"Result: {result} || {result.MessageType}");
+                if (result.MessageType == WebSocketMessageType.Close)
+                {
+                    Console.WriteLine("Server closed connection.");
+                    await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
+                    break;
+                }
+                
+                var messageData = Encoding.UTF8.GetString(buffer);
 
-            CommandHandler.Handle(command, data);
+                Console.WriteLine($"Running MessageData");
+                GetMessage(messageData);
+                Console.WriteLine($"After GetMessage");
+            }
         }
         catch (Exception e)
         {
-            Console.WriteLine($"Got invalid message");
-            Console.WriteLine(e);
+            Console.WriteLine($"Got invalid message \n {e}");
+        }
+    }
+
+    private void GetMessage(string messageData)
+    {
+        Console.WriteLine($"Message data: {messageData}");
+        try
+        {
+            Console.WriteLine($"Start Try");
+            
+            JObject message = JObject.Parse(messageData);
+            string? command = message["command"]?.Value<string>();
+            IncomingData data = new(message["data"]);
+            
+            Console.WriteLine($"after variable stuff   Message: {message}  Command: {command}   Data: {data}");
+        
+            if (command is null)
+            {
+                Console.WriteLine($"Command could not be deserialized");
+                ExecutionResult.Failure("Command could not be deserialized");
+            }
+        
+            Console.WriteLine($"Send to commandhandler");
+            CommandHandler.Handle(command!, data);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Catching error in Get message");
         }
     }
 }
+
 
 // too dumb to make this work
 

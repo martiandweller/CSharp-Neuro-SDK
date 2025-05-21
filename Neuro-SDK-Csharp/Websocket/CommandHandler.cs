@@ -15,14 +15,18 @@ public class CommandHandler
 
     public virtual void Handle(string command, IncomingData data)
     {
+        Start();
+        
         foreach (IIncomingMessageHandler handler in Handlers)
         {
+            Console.WriteLine($"Running CommandHandler foreach    {handler}");
             if (!handler.CanHandle(command)) continue;
 
             ExecutionResult validationResult;
             object? resultData;
             try
             {
+                Console.WriteLine($"CommandHandler running validation");
                 validationResult = handler.Validate(command, data, out resultData);
             }
             catch (Exception e)
@@ -41,6 +45,7 @@ public class CommandHandler
 
             if (validationResult.Successful)
             {
+                Console.WriteLine($"CommandHandler validation successful");
                 _ = handler.Execute(resultData);
             }
         }
