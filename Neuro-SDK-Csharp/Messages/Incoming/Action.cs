@@ -1,5 +1,6 @@
 using System.Security.AccessControl;
 using System.Text.Json.Serialization.Metadata;
+using Microsoft.VisualBasic.CompilerServices;
 using Neuro_SDK_Csharp.Actions;
 using Neuro_SDK_Csharp.Messages.API;
 using Neuro_SDK_Csharp.Websocket;
@@ -31,8 +32,10 @@ public class Action : IncomingMessageHandler<Action.ResultData>
             return ExecutionResult.ServerFailure("The action failed as there is no data.");
         }
 
-        string? actionId = incomingData.Data["id"]?.Value<string>("id");
-
+        string? actionId = incomingData.Data["id"]?.Value<string>();
+        
+        Console.WriteLine($"this is actionID: {actionId}");
+        
         if (string.IsNullOrEmpty(actionId))
         {
             resultData = null;
@@ -42,6 +45,8 @@ public class Action : IncomingMessageHandler<Action.ResultData>
         resultData = new ResultData(actionId);
         try
         {
+            Console.WriteLine($"{incomingData.Data}");
+            
             string? actionName = incomingData.Data?.Value<string>("name");
             string? actionStringifiedData = incomingData.Data?.Value<string>("data");
 
@@ -51,8 +56,14 @@ public class Action : IncomingMessageHandler<Action.ResultData>
                 return ExecutionResult.ServerFailure("Action has failed as there is no name");
             }
 
+            NeuroActionHandler action = new();
+            
             INeuroAction? registeredAction = NeuroActionHandler.GetRegistered(actionName);
-
+            
+            Console.WriteLine($"registered action: {registeredAction}");
+            
+            NeuroActionHandler.RegisterActions();
+            
             if (registeredAction == null)
             {
                 if (NeuroActionHandler.IsRecentlyUnregistered(actionName))
@@ -76,7 +87,7 @@ public class Action : IncomingMessageHandler<Action.ResultData>
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            Console.WriteLine($"action failed caught {e}");
 
             return ExecutionResult.Failure("Action Failed Caught");
         }
