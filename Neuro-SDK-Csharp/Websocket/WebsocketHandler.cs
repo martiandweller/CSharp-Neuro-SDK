@@ -1,7 +1,10 @@
+using System.Diagnostics;
 using System.Net.WebSockets;
+using System.Runtime.InteropServices.JavaScript;
 using System.Text;
 using Neuro_SDK_Csharp.Json;
 using Neuro_SDK_Csharp.Messages.API;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace Neuro_SDK_Csharp.Websocket;
@@ -29,7 +32,7 @@ public class WebsocketHandler
 
     public string Game = null!; // will be used for Messages
     public MessageQueue MessageQueue = null!;
-    public CommandHandler CommandHandler = null!;
+    public CommandHandler CommandHandler = new CommandHandler();
 
     private string? _uriString = ""; // this will be changed to be able to be changed through file in future
     private Uri _uri;
@@ -104,7 +107,7 @@ public class WebsocketHandler
         {
             await _webSocket.ConnectAsync(websocketUri, CancellationToken.None);
 
-            Console.WriteLine($"Starting Task");
+            Console.WriteLine($"Starting Task    Websocket connected {_webSocket.State}");
 
             _ = Task.Run(ReceiveMessage);
         }
@@ -152,7 +155,7 @@ public class WebsocketHandler
         await _webSocket!.SendAsync(sendBytes, WebSocketMessageType.Text, false, CancellationToken.None);
     }
 
-    private async Task ReceiveMessage()
+    private async Task ReceiveMessage() // TODO: Add ping/pong so maybe it doesnt close?
     {
         Console.WriteLine($"Start of ReceiveMessage");
 
@@ -161,20 +164,29 @@ public class WebsocketHandler
         try
         {
             Console.WriteLine($"Start of Try");
-            
             while (_webSocket.State == WebSocketState.Open)
             {
-                var result = await _webSocket.ReceiveAsync(buffer, CancellationToken.None);
-                Console.WriteLine($"Result: {result} || {result.MessageType}");
+                Console.WriteLine($"Current websocket state Start {_webSocket.State}");
+                WebSocketReceiveResult result;
+                MemoryStream memoryStream = new MemoryStream();
+                do
+                {
+                    result = await _webSocket.ReceiveAsync(buffer, CancellationToken.None);
+                    memoryStream.Write(buffer,0,result.Count);
+                } while (!result.EndOfMessage);
+                
+                Console.WriteLine($"Receive message result: {result} || {result.MessageType}  || {result.CloseStatus}");
+                
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
                     Console.WriteLine("Server closed connection.");
                     await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
                     break;
                 }
-                
-                var messageData = Encoding.UTF8.GetString(buffer);
 
+                var memoryStreamArray = memoryStream.ToArray();
+                var messageData = Encoding.UTF8.GetString(memoryStreamArray,0,memoryStreamArray.Length);
+                
                 Console.WriteLine($"Running MessageData");
                 GetMessage(messageData);
                 Console.WriteLine($"After GetMessage");
@@ -188,29 +200,50 @@ public class WebsocketHandler
 
     private void GetMessage(string messageData)
     {
+        messageData = messageData.Replace("\'", "\"");
         Console.WriteLine($"Message data: {messageData}");
         try
         {
+            Dictionary<string, Object>? dataArray = ProcessJsonMessage(messageData);
+            if (dataArray is null) return;
+            // command data
+            CommandHandler.Handle((string)dataArray["command"], (IncomingData)dataArray["data"]);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Catching error in GetMessage try   {e}");
+        }
+    }
+
+    public Dictionary<string, Object>? ProcessJsonMessage(string messageData)
+    {
+        try
+        {
+            // messageData = @"{\""command\"":\""action\"",\""data\"":{\""id\"":\""123\"",\""name\"":\""name\"",\""Description\"":\""This is Description\""}}";
             Console.WriteLine($"Start Try");
-            
-            JObject message = JObject.Parse(messageData);
+            JObject message = JObject.Parse(messageData); // this just doesnt work idk why
+
+            Console.WriteLine($"after message  {message}");
             string? command = message["command"]?.Value<string>();
+            Console.WriteLine($"after command  {command}");
             IncomingData data = new(message["data"]);
-            
-            Console.WriteLine($"after variable stuff   Message: {message}  Command: {command}   Data: {data}");
-        
+
+            Console.WriteLine($"after variable stuff   Message: {message}  Command: {command}   Data: {data.Data}");
+
             if (command is null)
             {
                 Console.WriteLine($"Command could not be deserialized");
                 ExecutionResult.Failure("Command could not be deserialized");
             }
-        
-            Console.WriteLine($"Send to commandhandler");
-            CommandHandler.Handle(command!, data);
+
+            Console.WriteLine($"Send to CommandHandler");
+            Dictionary<string, Object> dataDictionary = new Dictionary<string, object>{{"message", message},{"command",command},{"data",data}};
+            return dataDictionary;
         }
         catch (Exception e)
         {
-            Console.WriteLine($"Catching error in Get message");
+            Console.WriteLine($"Catching error in GetMessage try   {e}");
+            return null;
         }
     }
 }

@@ -15,39 +15,51 @@ public class CommandHandler
 
     public virtual void Handle(string command, IncomingData data)
     {
-        Start();
-        
-        foreach (IIncomingMessageHandler handler in Handlers)
+        Console.WriteLine($"Before Start     {Handlers}");
+        try
         {
-            Console.WriteLine($"Running CommandHandler foreach    {handler}");
-            if (!handler.CanHandle(command)) continue;
+            Start();
+        
+            Console.WriteLine($"Handler:  {Handlers}");
+        
+            foreach (IIncomingMessageHandler handler in Handlers)
+            {
+                Console.WriteLine($"Running CommandHandler foreach    {handler}");
+                if (!handler.CanHandle(command)) continue;
 
-            ExecutionResult validationResult;
-            object? resultData;
-            try
-            {
-                Console.WriteLine($"CommandHandler running validation");
-                validationResult = handler.Validate(command, data, out resultData);
-            }
-            catch (Exception e)
-            {
-                validationResult = ExecutionResult.Failure("Big issue at websocket.");
-                Console.WriteLine(e);
-                resultData = null;  
-            }
+                ExecutionResult validationResult;
+                object? resultData;
+                try
+                {
+                    Console.WriteLine($"CommandHandler running validation");
+                    validationResult = handler.Validate(command, data, out resultData);
+                }
+                catch (Exception e)
+                {
+                    validationResult = ExecutionResult.Failure("Big issue at websocket.");
+                    Console.WriteLine(e);
+                    resultData = null;  
+                }
 
-            if (!validationResult.Successful)
-            {
-                Console.WriteLine("Unsuccessful execution result when handling message");
-            }
+                if (!validationResult.Successful)
+                {
+                    Console.WriteLine("Unsuccessful execution result when handling message");
+                }
             
-            handler.ReportResult(resultData, validationResult);
+                handler.ReportResult(resultData, validationResult);
 
-            if (validationResult.Successful)
-            {
-                Console.WriteLine($"CommandHandler validation successful");
-                _ = handler.Execute(resultData);
+                if (validationResult.Successful)
+                {
+                    Console.WriteLine($"CommandHandler validation successful");
+                    _ = handler.Execute(resultData);
+                }
             }
         }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Issue in Handle \n  {e}");
+            throw;
+        }
+        
     }
 }

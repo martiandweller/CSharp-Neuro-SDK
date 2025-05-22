@@ -19,7 +19,9 @@ namespace Neuro_SDK_Csharp.Messages.API
     
         ExecutionResult IIncomingMessageHandler.Validate(string command,IncomingData incomingData, out object? resultData)
         {
+            Console.WriteLine($"Before Result");
             ExecutionResult result = Validate(command, incomingData);
+            Console.WriteLine($"Result   {result}");
             resultData = null;
             return result;
         }
@@ -39,7 +41,9 @@ namespace Neuro_SDK_Csharp.Messages.API
     
         ExecutionResult IIncomingMessageHandler.Validate(string command,IncomingData incomingData, out object? resultData)
         {
-            ExecutionResult result = Validate(command, incomingData, out T? tResultData);
+            Console.WriteLine($"Before Result");
+            ExecutionResult result = Validate(command, incomingData, out var tResultData);
+            Console.WriteLine($"IncomingMessageHandler Result   {result.Message}");
             resultData = tResultData;
             return result;
         }
