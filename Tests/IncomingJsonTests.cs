@@ -14,7 +14,7 @@ public class IncomingJsonTests
     {
         var testingClass = new Neuro_SDK_Csharp.Websocket.WebsocketHandler();
         
-        string testJson = "{\"command\": \"action\", \"data\": {\"id\": \"123\", \"name\": \"name\", \"Description\": \"This is Description\"}}";;
+        string testJson = "{\"command\": \"action\", \"data\": {\"id\": \"123\", \"name\": \"name\", \"Description\": \"This is Description\"}}";
 
         Dictionary<string,Object>? result = testingClass.ProcessJsonMessage(testJson);
 
@@ -31,10 +31,11 @@ public class IncomingJsonTests
     {
         var testingClass = new Neuro_SDK_Csharp.Websocket.WebsocketHandler();
         
-        string testJson = "\"{'command': 'action', 'data': {'id': '123', 'name': 'name', 'Description': 'This is Description'}\";";;
+        string testJson = "{'command': 'action', 'data': {'id': '123', 'name': 'name', 'Description': 'This is Description'}";
 
-        Dictionary<string,Object>? result = testingClass.ProcessJsonMessage(testJson);
-
-        Assert.Throws<Newtonsoft.Json.JsonReaderException>(() => testingClass.ProcessJsonMessage(testJson));
+        object? result = testingClass.ProcessJsonMessage(testJson);
+        
+        Assert.Null(result);
+        Assert.IsType<Newtonsoft.Json.JsonReaderException>(result);
     }
 }

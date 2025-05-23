@@ -11,7 +11,7 @@ namespace Neuro_SDK_Csharp.Websocket;
 
 public class WebsocketHandler
 {
-    private const float ReconnectInterval = 3;
+    private const float ReconnectInterval = 30;
 
     private static WebsocketHandler? _instance;
 
@@ -36,17 +36,12 @@ public class WebsocketHandler
 
     private string? _uriString = ""; // this will be changed to be able to be changed through file in future
     private Uri _uri;
-
-
-    private void Start() => StartWs();
-
-    //  string urlScheme, string urlHost, string urlPort
-
+    
     public async Task StartWs()
     {
         Console.WriteLine("This is start of Ws");
         Instance = this;
-
+        
         try
         {
             if (_webSocket!.State is WebSocketState.Open or WebSocketState.Connecting)
@@ -102,13 +97,15 @@ public class WebsocketHandler
 
         _webSocket = new ClientWebSocket();
         websocketUri = new Uri(_uriString);
+
+        _webSocket.Options.KeepAliveInterval = TimeSpan.FromMinutes(10); // should substitute ping pong
         
         try
         {
             await _webSocket.ConnectAsync(websocketUri, CancellationToken.None);
 
             Console.WriteLine($"Starting Task    Websocket connected {_webSocket.State}");
-
+            
             _ = Task.Run(ReceiveMessage);
         }
         catch (Exception e)
@@ -120,8 +117,8 @@ public class WebsocketHandler
 
     private async Task SendTask(OutgoingMessageHandler handler)
     {
-        string message = JsonSerialize.Serialize(handler.GetWsMessage());
-
+        string message = JsonSerialize.Serialize(handler.GetWsMessage()); // doesn't go past this??? also doesn't catch an exception
+        
         Console.WriteLine($"Sending the Ws Message {message}");
 
         var sendBytes = Encoding.UTF8.GetBytes(message);
@@ -155,51 +152,57 @@ public class WebsocketHandler
         await _webSocket!.SendAsync(sendBytes, WebSocketMessageType.Text, false, CancellationToken.None);
     }
 
-    private async Task ReceiveMessage() // TODO: Add ping/pong so maybe it doesnt close?
+    private async Task ReceiveMessage()
     {
         Console.WriteLine($"Start of ReceiveMessage");
 
         var buffer = new byte[1024 * 4];
-
-        try
+        
+        while (_webSocket.State == WebSocketState.Open)
         {
-            Console.WriteLine($"Start of Try");
-            while (_webSocket.State == WebSocketState.Open)
+            Console.WriteLine($"message queue count : {MessageQueue.Count}");
+            while (MessageQueue.Count > 0)
             {
-                Console.WriteLine($"Current websocket state Start {_webSocket.State}");
-                WebSocketReceiveResult result;
-                MemoryStream memoryStream = new MemoryStream();
-                do
-                {
-                    result = await _webSocket.ReceiveAsync(buffer, CancellationToken.None);
-                    memoryStream.Write(buffer,0,result.Count);
-                } while (!result.EndOfMessage);
-                
-                Console.WriteLine($"Receive message result: {result} || {result.MessageType}  || {result.CloseStatus}");
-                
-                if (result.MessageType == WebSocketMessageType.Close)
-                {
-                    Console.WriteLine("Server closed connection.");
-                    await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
-                    break;
-                }
-
-                var memoryStreamArray = memoryStream.ToArray();
-                var messageData = Encoding.UTF8.GetString(memoryStreamArray,0,memoryStreamArray.Length);
-                
-                Console.WriteLine($"Running MessageData");
-                GetMessage(messageData);
-                Console.WriteLine($"After GetMessage");
+                OutgoingMessageHandler handler = MessageQueue.Dequeue()!;
+                Console.WriteLine(handler);
+                await SendTask(handler);
             }
+
+            Console.WriteLine($"Current websocket state Start {_webSocket.State}");
+            WebSocketReceiveResult result;
+            MemoryStream memoryStream = new MemoryStream();
+            do
+            {
+                result = await _webSocket.ReceiveAsync(buffer, CancellationToken.None);
+                memoryStream.Write(buffer,0,result.Count);
+            } while (!result.EndOfMessage);
+            
+            Console.WriteLine($"Receive message result: {result} || {result.MessageType}  || {result.CloseStatus}");
+            
+            if (result.MessageType == WebSocketMessageType.Close)
+            {
+                Console.WriteLine("Server closed connection.");
+                await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
+                break;
+            }
+
+            var memoryStreamArray = memoryStream.ToArray();
+            var messageData = Encoding.UTF8.GetString(memoryStreamArray,0,memoryStreamArray.Length);
+            
+            Console.WriteLine($"Running MessageData");
+            GetMessage(messageData);
+            Console.WriteLine($"After GetMessage");
         }
-        catch (Exception e)
+
+        if (_webSocket.State != WebSocketState.Open)
         {
-            Console.WriteLine($"Got invalid message \n {e}");
+            await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure,"",CancellationToken.None);
         }
     }
 
     private void GetMessage(string messageData)
     {
+        Console.WriteLine($"Message data: {messageData}");
         messageData = messageData.Replace("\'", "\"");
         Console.WriteLine($"Message data: {messageData}");
         try
@@ -217,13 +220,11 @@ public class WebsocketHandler
 
     public Dictionary<string, Object>? ProcessJsonMessage(string messageData)
     {
-        try
-        {
             // messageData = @"{\""command\"":\""action\"",\""data\"":{\""id\"":\""123\"",\""name\"":\""name\"",\""Description\"":\""This is Description\""}}";
             Console.WriteLine($"Start Try");
             JObject message = JObject.Parse(messageData); // this just doesnt work idk why
-
             Console.WriteLine($"after message  {message}");
+            
             string? command = message["command"]?.Value<string>();
             Console.WriteLine($"after command  {command}");
             IncomingData data = new(message["data"]);
@@ -239,15 +240,8 @@ public class WebsocketHandler
             Console.WriteLine($"Send to CommandHandler");
             Dictionary<string, Object> dataDictionary = new Dictionary<string, object>{{"message", message},{"command",command},{"data",data}};
             return dataDictionary;
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine($"Catching error in GetMessage try   {e}");
-            return null;
-        }
     }
 }
-
 
 // too dumb to make this work
 
