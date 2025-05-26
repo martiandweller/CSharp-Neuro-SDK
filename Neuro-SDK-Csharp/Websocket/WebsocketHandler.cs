@@ -6,6 +6,7 @@ using Neuro_SDK_Csharp.Json;
 using Neuro_SDK_Csharp.Messages.API;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Serialization;
 
 namespace Neuro_SDK_Csharp.Websocket;
 
@@ -117,15 +118,21 @@ public class WebsocketHandler
 
     private async Task SendTask(OutgoingMessageHandler handler)
     {
-        string message = JsonSerialize.Serialize(handler.GetWsMessage()); // doesn't go past this??? also doesn't catch an exception
+        Console.WriteLine($"running SendTask");
+
+        WsMessage wsMessage = handler.GetWsMessage(); 
+        
+        Console.WriteLine($"wsMessage before serialize {wsMessage}");
+        
+        string message = JsonSerialize.Serialize(wsMessage);
         
         Console.WriteLine($"Sending the Ws Message {message}");
 
         var sendBytes = Encoding.UTF8.GetBytes(message);
-
+        
         try
         {
-            await _webSocket!.SendAsync(sendBytes, WebSocketMessageType.Text, false, CancellationToken.None);
+            await _webSocket!.SendAsync(sendBytes, WebSocketMessageType.Text, true, CancellationToken.None);
         }
         catch (Exception e)
         {
@@ -161,13 +168,7 @@ public class WebsocketHandler
         while (_webSocket.State == WebSocketState.Open)
         {
             Console.WriteLine($"message queue count : {MessageQueue.Count}");
-            while (MessageQueue.Count > 0)
-            {
-                OutgoingMessageHandler handler = MessageQueue.Dequeue()!;
-                Console.WriteLine(handler);
-                await SendTask(handler);
-            }
-
+            
             Console.WriteLine($"Current websocket state Start {_webSocket.State}");
             WebSocketReceiveResult result;
             MemoryStream memoryStream = new MemoryStream();
@@ -200,6 +201,20 @@ public class WebsocketHandler
         }
     }
 
+    public async void Update()
+    {
+        // Console.WriteLine($"websocket Update running");
+        
+        if (_webSocket.State != WebSocketState.Open) return;
+
+        while (MessageQueue.Count > 0)
+        {
+            OutgoingMessageHandler handler = MessageQueue.Dequeue()!;
+            Console.WriteLine(handler);
+            await SendTask(handler);
+        }
+    }
+    
     private void GetMessage(string messageData)
     {
         Console.WriteLine($"Message data: {messageData}");

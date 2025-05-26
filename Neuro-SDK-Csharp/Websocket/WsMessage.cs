@@ -1,3 +1,5 @@
+using Newtonsoft.Json;
+
 namespace Neuro_SDK_Csharp.Websocket;
 
 public record WsMessage
@@ -6,10 +8,15 @@ public record WsMessage
     {
         Command = command;
         Data = data;
-        _game = game;
+        Game = game;
     }
 
+    [JsonProperty("command", Order=0)]
     public readonly string Command;
-    private readonly string _game;
+    
+    [JsonProperty("game", Order=10)]
+    public readonly string Game;
+    
+    [JsonProperty("data", Order=20)]
     public readonly object? Data;
 }

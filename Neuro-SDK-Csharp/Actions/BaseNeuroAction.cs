@@ -1,5 +1,6 @@
 using Neuro_SDK_Csharp.Json;
 using Neuro_SDK_Csharp.Websocket;
+using Newtonsoft.Json;
 
 namespace Neuro_SDK_Csharp.Actions;
 
@@ -24,8 +25,7 @@ public abstract class BaseNeuroAction : INeuroAction
 
         if (ActionWindow != null)
         {
-            // return ActionWindow.Result(result) // not implemented method yet
-            return ExecutionResult.Failure("sdafsdaf");
+            return ActionWindow.Result(result);
         }
 
         return result;

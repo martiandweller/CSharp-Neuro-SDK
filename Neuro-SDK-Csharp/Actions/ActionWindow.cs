@@ -17,9 +17,7 @@ public sealed class ActionWindow
     #endregion
     
     #region State
-
     
-
     public enum State
     {
         Building,
@@ -41,6 +39,9 @@ public sealed class ActionWindow
         return true;
     }
 
+    /// <summary>
+    /// Sends an action register to the websocket. This will also make this window immutable
+    /// </summary>
     public void Register()
     {
         if (CurrentState != State.Building)
@@ -66,12 +67,14 @@ public sealed class ActionWindow
     #endregion
 
     #region Context
-
     
-
     private string? _contextMessage;
     private bool? _contextSilent;
 
+    /// <summary>
+    /// Will send a Context message with the action register
+    /// </summary>
+    /// <returns>itself this is for chaining</returns>
     public ActionWindow SetContext(string message, bool silent = false)
     {
         if (!ValidateFrozen()) return this;
@@ -87,6 +90,10 @@ public sealed class ActionWindow
     
     private readonly List<INeuroAction> _actions = new();
 
+    /// <summary>
+    /// adds a new list of possible actions
+    /// </summary>
+    /// <returns>itself this is for chaining</returns>
     public ActionWindow AddAction(INeuroAction action)
     {
         if (!ValidateFrozen()) return this;
@@ -95,7 +102,7 @@ public sealed class ActionWindow
         {
             if (action.ActionWindow != this)
             {
-                Console.WriteLine($"Cannot add action {action.Name} to this action window");
+                Console.WriteLine($"Cannot add action {action.Name} to this action window as it is already in another action window");
             }
 
             return this;
@@ -124,6 +131,14 @@ public sealed class ActionWindow
     private Func<string?>? _forceStateGetter;
     private bool? _forceEphemeralContext;
 
+    /// <summary>
+    /// Specify a condition under which the actions will be forced
+    /// </summary>
+    /// <param name="shouldForce">if this returns true, the actions will be forced</param>
+    /// <param name="queryGetter">A getter for the query of the action force, invoked at force-time</param>
+    /// <param name="stateGetter">A getter for the state of the action force, invoked at force-time</param>
+    /// <param name="ephemeralContext">If true the query and state won't be remembered after the action force is finished</param>
+    /// <returns>itself for chaining</returns>
     public ActionWindow SetForce(Func<bool> shouldForce, Func<string> queryGetter, Func<string?> stateGetter,
         bool ephemeralContext = false)
     {
@@ -136,10 +151,24 @@ public sealed class ActionWindow
 
         return this;
     }
-
+    
+    /// <summary>
+    /// Specify a condition under which the actions will be forced
+    /// </summary>
+    /// <param name="shouldForce">if this returns true, the actions will be forced</param>
+    /// <param name="ephemeralContext">If true the query and state won't be remembered after the action force is finished</param>
+    /// <returns>itself for chaining</returns>
     public ActionWindow SetForce(Func<bool> shouldForce, string query, string? state, bool ephemeralContext = false) =>
         SetForce(shouldForce, () => query, () => state, ephemeralContext);
-
+    
+    /// <summary>
+    /// specify a time in seconds after which the actions should be forced
+    /// </summary>
+    /// <param name="afterSeconds">Time till the action is forced</param>
+    /// <param name="queryGetter">A getter for the query of the action force, invoked at force-time</param>
+    /// <param name="stateGetter">A getter for the state of the action force, invoked at force-time</param>
+    /// <param name="ephemeralContext">if true, the query and state won't be remembered after the action force is finished</param>
+    /// <returns>itself for chaining</returns>
     public ActionWindow SetForce(float afterSeconds, Func<string> queryGetter, Func<string?> stateGetter,
         bool ephemeralContext = false)
     {
@@ -153,7 +182,13 @@ public sealed class ActionWindow
             return time <= 0;
         }
     }
-
+    
+    /// <summary>
+    /// specify a time in seconds after which the actions should be forced
+    /// </summary>
+    /// <param name="afterSeconds">Time till the action is forced</param>
+    /// <param name="ephemeralContext">if true, the query and state won't be remembered after the action force is finished</param>
+    /// <returns>itself for chaining</returns>
     public ActionWindow SetForce(float afterSeconds, string query, string? state, bool ephemeralContext = false) =>
         SetForce(afterSeconds, () => query,() => state, ephemeralContext);
 
@@ -171,6 +206,11 @@ public sealed class ActionWindow
     
     private Func<bool>? _shouldEndFunc;
 
+    /// <summary>
+    /// Specify a condition under which the actions should be unregistered and this window closed
+    /// </summary>
+    /// <param name="shouldEnd">If this returns true, the actions will be unregistered</param>
+    /// <returns>itself for chaining</returns>
     public ActionWindow SetEnd(Func<bool> shouldEnd)
     {
         if (!ValidateFrozen()) return this;

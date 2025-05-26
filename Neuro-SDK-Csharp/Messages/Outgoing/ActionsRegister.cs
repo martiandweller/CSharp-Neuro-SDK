@@ -1,5 +1,6 @@
 using Neuro_SDK_Csharp.Actions;
 using Neuro_SDK_Csharp.Messages.API;
+using Newtonsoft.Json;
 
 namespace Neuro_SDK_Csharp.Messages.Outgoing;
 
@@ -16,6 +17,7 @@ public sealed class ActionsRegister : OutgoingMessageHandler
     {
     }
 
+    [JsonProperty("actions")]
     public readonly List<WSAction> Actions;
 
     public override bool Merge(OutgoingMessageHandler handler)
