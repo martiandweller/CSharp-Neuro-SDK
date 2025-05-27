@@ -233,12 +233,6 @@ public sealed class ActionWindow
         }
     }
 
-    private void OnDestroy()
-    {
-        if (CurrentState == State.Ended) return;
-        End();
-    }
-
     public void End()
     {
         if (CurrentState >= State.Ended) return;
@@ -263,6 +257,21 @@ public sealed class ActionWindow
         if (result.Successful) End();
 
         return result;
+    }
+    
+    public void Update()
+    {
+        if (CurrentState != State.Registered) return;
+
+        if (_shouldForceFunc != null && _shouldForceFunc())
+        {
+            Force();
+        }
+
+        if (_shouldEndFunc != null && _shouldEndFunc())
+        {
+            End();
+        }
     }
     #endregion
 }

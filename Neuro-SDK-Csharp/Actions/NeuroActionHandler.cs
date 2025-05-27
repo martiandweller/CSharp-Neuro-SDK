@@ -29,7 +29,7 @@ public sealed class NeuroActionHandler
     }
 
     public static void RegisterActions(params INeuroAction[] newActions)
-        => RegisterActions((IReadOnlyCollection<INeuroAction>) newActions); // it recursive :)
+        => RegisterActions((IReadOnlyCollection<INeuroAction>)newActions);
 
     public static void UnregisterActions(IEnumerable<string> removeActionsList)
     {
