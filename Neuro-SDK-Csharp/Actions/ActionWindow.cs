@@ -1,19 +1,45 @@
+using Microsoft.Xna.Framework;
 using Neuro_SDK_Csharp.Messages.Outgoing;
 using Neuro_SDK_Csharp.Utilities;
 using Neuro_SDK_Csharp.Websocket;
 
 namespace Neuro_SDK_Csharp.Actions;
 
-public sealed class ActionWindow
+public sealed class ActionWindow : GameComponent
 {
     #region Create
-    private ActionWindow()
+
+    private static bool _createdCorrectly = false;
+
+    private ActionWindow(Game gameClass) : base(gameClass)
     {}
     
-    public static ActionWindow Create()
+    public static ActionWindow Create(Game gameClass)
     {
-        return new ActionWindow();
+        try
+        {
+            _createdCorrectly = true;
+            ActionWindow actionWindow = new ActionWindow(gameClass);
+            gameClass.Components.Add(actionWindow);
+            return actionWindow;
+        }
+        catch (Exception e)
+        {
+            _createdCorrectly = false;
+            Console.WriteLine(e);
+            throw;
+        }
     }
+
+    public override void Initialize()
+    {
+        if (!_createdCorrectly)
+        {
+            Console.WriteLine("ActionWindow was not created correctly. You should use the Create method");
+            Dispose();
+        }
+    }
+    
     #endregion
     
     #region State
@@ -130,7 +156,16 @@ public sealed class ActionWindow
     private Func<string>? _forceQueryGetter;
     private Func<string?>? _forceStateGetter;
     private bool? _forceEphemeralContext;
-
+    
+    /// <summary>
+    /// Specify a condition under which the actions will be forced
+    /// </summary>
+    /// <param name="shouldForce">if this returns true, the actions will be forced</param>
+    /// <param name="ephemeralContext">If true the query and state won't be remembered after the action force is finished</param>
+    /// <returns>itself for chaining</returns>
+    public ActionWindow SetForce(Func<bool> shouldForce, string query, string? state, bool ephemeralContext = false) =>
+        SetForce(shouldForce, () => query, () => state, ephemeralContext);
+    
     /// <summary>
     /// Specify a condition under which the actions will be forced
     /// </summary>
@@ -153,14 +188,14 @@ public sealed class ActionWindow
     }
     
     /// <summary>
-    /// Specify a condition under which the actions will be forced
+    /// specify a time in seconds after which the actions should be forced
     /// </summary>
-    /// <param name="shouldForce">if this returns true, the actions will be forced</param>
-    /// <param name="ephemeralContext">If true the query and state won't be remembered after the action force is finished</param>
+    /// <param name="afterSeconds">Time till the action is forced</param>
+    /// <param name="ephemeralContext">if true, the query and state won't be remembered after the action force is finished</param>
     /// <returns>itself for chaining</returns>
-    public ActionWindow SetForce(Func<bool> shouldForce, string query, string? state, bool ephemeralContext = false) =>
-        SetForce(shouldForce, () => query, () => state, ephemeralContext);
-    
+    public ActionWindow SetForce(float afterSeconds, string query, string? state, bool ephemeralContext = false) =>
+        SetForce(afterSeconds, () => query,() => state, ephemeralContext);
+
     /// <summary>
     /// specify a time in seconds after which the actions should be forced
     /// </summary>
@@ -183,15 +218,6 @@ public sealed class ActionWindow
         }
     }
     
-    /// <summary>
-    /// specify a time in seconds after which the actions should be forced
-    /// </summary>
-    /// <param name="afterSeconds">Time till the action is forced</param>
-    /// <param name="ephemeralContext">if true, the query and state won't be remembered after the action force is finished</param>
-    /// <returns>itself for chaining</returns>
-    public ActionWindow SetForce(float afterSeconds, string query, string? state, bool ephemeralContext = false) =>
-        SetForce(afterSeconds, () => query,() => state, ephemeralContext);
-
     public void Force()
     {
         if (CurrentState != State.Registered) return;
@@ -259,7 +285,7 @@ public sealed class ActionWindow
         return result;
     }
     
-    public void Update()
+    public override void Update(GameTime gameTime)
     {
         if (CurrentState != State.Registered) return;
 

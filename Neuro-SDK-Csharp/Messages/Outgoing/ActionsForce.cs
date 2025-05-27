@@ -1,5 +1,7 @@
+using System.Text.Json.Serialization;
 using Neuro_SDK_Csharp.Actions;
 using Neuro_SDK_Csharp.Messages.API;
+using Newtonsoft.Json;
 
 namespace Neuro_SDK_Csharp.Messages.Outgoing;
 
@@ -19,11 +21,15 @@ public class ActionsForce : OutgoingMessageHandler
         query, state, ephemeralContext, (IEnumerable<INeuroAction>)actions)
     {}
 
+    [JsonProperty("state", Order = 0)]
     private readonly string? _state;
 
+    [JsonProperty("query", Order = 10)]
     private readonly string _query;
 
+    [JsonProperty("ephemeral", Order = 20)]
     private readonly bool? _ephemeralContext;
 
+    [JsonProperty("action_names", Order = 30)]
     private readonly string[] _actionNames;
 }

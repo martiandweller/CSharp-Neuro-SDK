@@ -4,6 +4,7 @@ using System.Runtime.InteropServices.JavaScript;
 using System.Text;
 using Neuro_SDK_Csharp.Json;
 using Neuro_SDK_Csharp.Messages.API;
+using Neuro_SDK_Csharp.Messages.Outgoing;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
@@ -206,7 +207,7 @@ public class WebsocketHandler
         // Console.WriteLine($"websocket Update running");
         
         if (_webSocket.State != WebSocketState.Open) return;
-
+    
         while (MessageQueue.Count > 0)
         {
             OutgoingMessageHandler handler = MessageQueue.Dequeue()!;
