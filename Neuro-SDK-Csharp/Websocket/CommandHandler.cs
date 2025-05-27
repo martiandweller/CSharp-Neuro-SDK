@@ -36,7 +36,7 @@ public class CommandHandler
                 }
                 catch (Exception e)
                 {
-                    validationResult = ExecutionResult.Failure("Big issue at websocket.");
+                    validationResult = ExecutionResult.Failure($"Issue with message handling {e.Message}");
                     Console.WriteLine(e);
                     resultData = null;  
                 }

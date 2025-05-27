@@ -1,8 +1,6 @@
-using System.Security.AccessControl;
-using System.Text.Json.Serialization.Metadata;
-using Microsoft.VisualBasic.CompilerServices;
 using Neuro_SDK_Csharp.Actions;
 using Neuro_SDK_Csharp.Messages.API;
+using Neuro_SDK_Csharp.Messages.Outgoing;
 using Neuro_SDK_Csharp.Websocket;
 using Newtonsoft.Json.Linq;
 
@@ -101,7 +99,7 @@ public class Action : IncomingMessageHandler<Action.ResultData>
             return;
         }
         
-        // send websocket stuff
+        WebsocketHandler.Instance!.Send(new ActionResult(resultData.Id,executionResult));
     }
 
     protected override Task Execute(ResultData? incomingData)

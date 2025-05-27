@@ -4,24 +4,24 @@ namespace Neuro_SDK_Csharp.Messages.API
 {
     public interface IIncomingMessageHandler
     {
-        public ExecutionResult Validate(string command,IncomingData incomingData, out object? resultData);
-        public void ReportResult(object? resultData,ExecutionResult executionResult);
-        public Task Execute(object? incomingData);
-        public bool CanHandle(string command);
+        ExecutionResult Validate(string command,IncomingData incomingData, out object? resultData);
+        void ReportResult(object? resultData,ExecutionResult executionResult);
+        Task Execute(object? incomingData);
+        bool CanHandle(string command);
     }
     
     public abstract class IncomingMessageHandler : IIncomingMessageHandler
     {
-        public abstract ExecutionResult Validate(string command,IncomingData incomingData);
         public abstract bool CanHandle(string command);
-        public abstract void ReportResult(ExecutionResult executionResult);
-        public abstract Task Execute();
+        protected abstract ExecutionResult Validate(string command,IncomingData incomingData);
+        protected abstract void ReportResult(ExecutionResult executionResult);
+        protected abstract Task Execute();
     
         ExecutionResult IIncomingMessageHandler.Validate(string command,IncomingData incomingData, out object? resultData)
         {
             Console.WriteLine($"Before Result");
             ExecutionResult result = Validate(command, incomingData);
-            Console.WriteLine($"Result   {result}");
+            Console.WriteLine($"IncomingMessageHandler Validate Result   {result}");
             resultData = null;
             return result;
         }

@@ -1,5 +1,6 @@
 using Neuro_SDK_Csharp.Actions;
 using Neuro_SDK_Csharp.Messages.API;
+using Newtonsoft.Json;
 
 namespace Neuro_SDK_Csharp.Messages.Outgoing;
 
@@ -21,6 +22,7 @@ public sealed class ActionsUnregister : OutgoingMessageHandler
     public ActionsUnregister(params string[] actionNames) : this((IEnumerable<string>) actionNames)
     {}
 
+    [JsonProperty("action_names")]
     public readonly List<string> Names;
     
     public override bool Merge(OutgoingMessageHandler handler)

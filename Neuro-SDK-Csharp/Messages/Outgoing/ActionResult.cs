@@ -1,15 +1,16 @@
 using Neuro_SDK_Csharp.Messages.API;
+using Neuro_SDK_Csharp.Websocket;
 using Newtonsoft.Json;
 
 namespace Neuro_SDK_Csharp.Messages.Outgoing;
 
 public sealed class ActionResult : OutgoingMessageHandler
 {
-    public ActionResult(string id,bool success,string? message)
+    public ActionResult(string id,ExecutionResult result)
     {
         _id = id;
-        _success = success;
-        _message = message;
+        _success = result.Successful;
+        _message = result.Message;
     }
     
     protected override string Command => "action/result";
