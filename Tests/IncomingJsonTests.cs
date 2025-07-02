@@ -1,6 +1,6 @@
 using Xunit;
-using Neuro_SDK_Csharp;
-using Neuro_SDK_Csharp.Messages.API;
+using NeuroSDKCsharp;
+using NeuroSDKCsharp.Messages.API;
 using Newtonsoft.Json.Linq;
 using Xunit.Abstractions;
 using Xunit.Sdk;
@@ -12,7 +12,7 @@ public class IncomingJsonTests
     [Fact]
     public void ProcessMessage_ValidJson_ShouldParseSuccessfully()
     {
-        var testingClass = new Neuro_SDK_Csharp.Websocket.WebsocketHandler();
+        var testingClass = new NeuroSDKCsharp.Websocket.WebsocketHandler();
         
         string testJson = "{\"command\": \"action\", \"data\": {\"id\": \"123\", \"name\": \"name\", \"Description\": \"This is Description\"}}";
 
@@ -29,7 +29,7 @@ public class IncomingJsonTests
     [Fact]
     public void ProcessMessage_ValidJson_ShouldParseUnsuccessfully()
     {
-        var testingClass = new Neuro_SDK_Csharp.Websocket.WebsocketHandler();
+        var testingClass = new NeuroSDKCsharp.Websocket.WebsocketHandler();
         
         string testJson = "{'command': 'action', 'data': {'id': '123', 'name': 'name', 'Description': 'This is Description'}";
 

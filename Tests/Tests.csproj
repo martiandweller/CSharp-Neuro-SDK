@@ -23,7 +23,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Neuro-SDK-Csharp\Neuro-SDK-Csharp.csproj" />
+      <ProjectReference Include="..\NeuroSDKCsharp\NeuroSDKCsharp.csproj" />
     </ItemGroup>
 
 </Project>
