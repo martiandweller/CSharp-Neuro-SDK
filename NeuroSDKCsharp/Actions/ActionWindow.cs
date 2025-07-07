@@ -1,19 +1,46 @@
+using Microsoft.Xna.Framework;
 using NeuroSDKCsharp.Messages.Outgoing;
 using NeuroSDKCsharp.Utilities;
 using NeuroSDKCsharp.Websocket;
 
 namespace NeuroSDKCsharp.Actions;
 
-public sealed class ActionWindow
+public sealed class ActionWindow : GameComponent
 {
     #region Create
-    private ActionWindow()
-    {}
-    
-    public static ActionWindow Create()
+
+    private static bool _createdCorrectly = false;
+
+    private ActionWindow(Game gameClass) : base(gameClass)
     {
-        return new ActionWindow();
     }
+    
+    public static ActionWindow Create(Game gameClass)
+
+    {
+        try
+        {
+            _createdCorrectly = true;
+            ActionWindow actionWindow = new ActionWindow(gameClass);
+            gameClass.Components.Add(actionWindow);
+            return actionWindow;
+        }
+        catch (Exception e)
+        {
+            _createdCorrectly = false;
+            Console.WriteLine(e);
+            throw;
+        }
+    }
+    public override void Initialize()
+    {
+        if (!_createdCorrectly)
+        {
+            Console.WriteLine($"ActionWindow was not created correctly, you should use the Create method");
+            Dispose();
+        }
+    }
+
     #endregion
     
     #region State
@@ -130,7 +157,7 @@ public sealed class ActionWindow
     private Func<string>? _forceQueryGetter;
     private Func<string?>? _forceStateGetter;
     private bool? _forceEphemeralContext;
-
+    
     /// <summary>
     /// Specify a condition under which the actions will be forced
     /// </summary>
@@ -241,8 +268,7 @@ public sealed class ActionWindow
         _shouldForceFunc = null;
         _shouldEndFunc = null;
         CurrentState = State.Ended;
-        //TODO: find way to remove Instance
-        return;
+        Dispose();
     }
     #endregion
 
@@ -258,8 +284,8 @@ public sealed class ActionWindow
 
         return result;
     }
-    
-    public void Update()
+
+    public override void Update(GameTime gameTime)
     {
         if (CurrentState != State.Registered) return;
 
