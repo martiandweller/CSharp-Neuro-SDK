@@ -20,7 +20,7 @@ public class WebsocketHandler
         get
         {
             if (_instance is null)
-                ExecutionResult.Failure("WebsocketHandlerInstance was accessed without an instance being present");
+                Console.WriteLine("WebsocketHandlerInstance was accessed without an instance being present");
             return _instance;
         }
         private set => _instance = value;
@@ -34,8 +34,8 @@ public class WebsocketHandler
     public MessageQueue MessageQueue = null!;
     public CommandHandler CommandHandler = new CommandHandler();
 
-    private string? _uriString = ""; // this will be changed to be able to be changed through file in future
-    private Uri _uri;
+    public string? UriString = "ws://localhost:8000/ws/"; // this will be changed to be able to be changed through file in future
+    // private Uri _uri;
     
     public async Task StartWs()
     {
@@ -55,38 +55,15 @@ public class WebsocketHandler
 
         Uri? websocketUri = null;
 
-        if (websocketUri == null)
+        if (UriString is null or "")
         {
-            websocketUri = new Uri("ws://localhost:8000/ws/"); // this is temporary
-        }
-
-        // if (_uriString is null or "")
-        // {
-        //     try
-        //     {
-        //         HttpClient client = new HttpClient();
-        //         string responseBody = await client.GetStringAsync(_uriString);
-        //     }
-        //     catch (Exception e)
-        //     {
-        //         Console.WriteLine(e);
-        //         throw;
-        //     }
-        // }
-
-        if (_uriString is null or "")
-        {
-            _uriString = Environment.GetEnvironmentVariable("NEURO_SDK_WS_URL", EnvironmentVariableTarget.Process) ??
+            UriString = Environment.GetEnvironmentVariable("NEURO_SDK_WS_URL", EnvironmentVariableTarget.Process) ??
                          Environment.GetEnvironmentVariable("NEURO_SDK_WS_URL", EnvironmentVariableTarget.User) ??
                          Environment.GetEnvironmentVariable("NEURO_SDK_WS_URL", EnvironmentVariableTarget.Machine);
-            Console.WriteLine(_uriString);
+            Console.WriteLine($"UriString: {UriString}");
         }
-
-        _uriString = "ws://localhost:8000/ws/";
-
-        Console.WriteLine($"This is _uriString test: {_uriString}");
-
-        if (_uriString is null or "")
+        
+        if (UriString is null or "")
         {
             string errorMessage =
                 "Could not get websocket URL. You need to set the NEURO_SDK_WS_URL environment variable";
@@ -96,7 +73,7 @@ public class WebsocketHandler
         }
 
         _webSocket = new ClientWebSocket();
-        websocketUri = new Uri(_uriString);
+        websocketUri = new Uri(UriString);
 
         _webSocket.Options.KeepAliveInterval = TimeSpan.FromMinutes(10); // should substitute ping pong
         
