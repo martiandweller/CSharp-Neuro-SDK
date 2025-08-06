@@ -1,19 +1,25 @@
-using System.Diagnostics;
 using System.Net.WebSockets;
 using System.Text;
+using Microsoft.Xna.Framework;
 using NeuroSDKCsharp.Json;
 using NeuroSDKCsharp.Messages.API;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Newtonsoft.Json.Serialization;
 
 namespace NeuroSDKCsharp.Websocket;
 
-public class WebsocketHandler
+public class WebsocketHandler : GameComponent
 {
     private const float ReconnectInterval = 30;
 
     private static WebsocketHandler? _instance;
+
+    public WebsocketHandler(Game game, string gameName, string? uriString) : base(game)
+    {
+        GameName = gameName;
+        MessageQueue = new MessageQueue();
+        CommandHandler = new CommandHandler();
+        UriString = uriString;
+    }
 
     public static WebsocketHandler? Instance
     {
@@ -30,12 +36,22 @@ public class WebsocketHandler
 
     private ClientWebSocket? _webSocket = new ClientWebSocket();
 
-    public string Game = null!; // will be used for Messages
-    public MessageQueue MessageQueue = null!;
-    public CommandHandler CommandHandler = new CommandHandler();
+    public readonly string GameName = null!; // will be used for Messages
+    private readonly MessageQueue MessageQueue = null!;
+    private readonly CommandHandler CommandHandler = new CommandHandler();
 
-    public string? UriString = "ws://localhost:8000/ws/"; // this will be changed to be able to be changed through file in future
-    // private Uri _uri;
+    private string? UriString = "ws://localhost:8000/ws/"; // this will be changed to be able to be changed through file in future
+    public override async void Initialize()
+    {
+        try
+        {
+            await StartWs();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"issue in initialize: {e}");
+        }
+    }
     
     public async Task StartWs()
     {
@@ -79,6 +95,11 @@ public class WebsocketHandler
         
         try
         {
+            // need to add reconnect to this
+            // if (_webSocket.ConnectAsync(websocketUri, CancellationToken.None) is WebSocketException)
+            // {
+            //     throw new Exception();
+            // }
             await _webSocket.ConnectAsync(websocketUri, CancellationToken.None);
 
             Console.WriteLine($"Starting Task    Websocket connected {_webSocket.State}");
@@ -177,17 +198,23 @@ public class WebsocketHandler
         }
     }
 
-    public async void Update()
+    public override async void Update(GameTime gameTime)
     {
-        // Console.WriteLine($"websocket Update running");
-        
-        if (_webSocket.State != WebSocketState.Open) return;
-
-        while (MessageQueue.Count > 0)
+        try
         {
-            OutgoingMessageHandler handler = MessageQueue.Dequeue()!;
-            Console.WriteLine(handler);
-            await SendTask(handler);
+            if (_webSocket.State != WebSocketState.Open) return;
+
+            while (MessageQueue.Count > 0)
+            {
+                OutgoingMessageHandler handler = MessageQueue.Dequeue()!;
+                Console.WriteLine(handler);
+                await SendTask(handler);
+            }
+            base.Update(gameTime);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Issue in update of ws: {e}");
         }
     }
     

@@ -11,7 +11,7 @@ public interface INeuroAction
 
     public bool CanAddToActionWindow(ActionWindow actionWindow);
 
-    Task Execute(object? data);
+    void Execute(object? data);
 
     WSAction GetWsAction();
 

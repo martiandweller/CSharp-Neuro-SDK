@@ -16,7 +16,6 @@ public sealed class ActionWindow : GameComponent
     }
     
     public static ActionWindow Create(Game gameClass)
-
     {
         try
         {
@@ -263,24 +262,33 @@ public sealed class ActionWindow : GameComponent
     public void End()
     {
         if (CurrentState >= State.Ended) return;
+        Console.WriteLine($"Ending Actionwindow");
         
         NeuroActionHandler.UnregisterActions(_actions);
         _shouldForceFunc = null;
         _shouldEndFunc = null;
         CurrentState = State.Ended;
-        Dispose();
+        Dispose(true);
     }
     #endregion
 
-    #region Handling    
+    #region Handling
+    /// <summary>
+    /// Run <see cref="ExecutionResult"/> through this ActionWindow, is called automaticallly in <see cref="BaseNeuroAction"/>.
+    /// </summary>
     public ExecutionResult Result(ExecutionResult result)
     {
         if (CurrentState <= State.Building)
             throw new InvalidOperationException("Cannot handle a result before registering the action window");
         if (CurrentState >= State.Ended)
             throw new InvalidOperationException("Cannot handle a result after the Action window has ended");
-        
-        if (result.Successful) End();
+
+        // TODO: this causes issues with action.cs validation
+        if (result.Successful)
+        {
+            Console.WriteLine($"End in result successful");
+            End(); // this leads to actionwindow ending before Action.Validate line#80
+        }
 
         return result;
     }
@@ -288,16 +296,18 @@ public sealed class ActionWindow : GameComponent
     public override void Update(GameTime gameTime)
     {
         if (CurrentState != State.Registered) return;
-
+    
         if (_shouldForceFunc != null && _shouldForceFunc())
         {
             Force();
         }
-
+    
         if (_shouldEndFunc != null && _shouldEndFunc())
         {
+            Console.WriteLine($"end in update");
             End();
         }
+        base.Update(gameTime);
     }
     #endregion
 }

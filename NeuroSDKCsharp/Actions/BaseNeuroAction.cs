@@ -25,13 +25,14 @@ public abstract class BaseNeuroAction : INeuroAction
 
         if (ActionWindow != null)
         {
-            return ActionWindow.Result(result);
+            Console.WriteLine($"base neuro action validation running");
+            return ActionWindow.Result(result); // TODO: issue here
         }
 
         return result;
     }
 
-    Task INeuroAction.Execute(object? data) => Execute(data);
+    void INeuroAction.Execute(object? data) => Execute(data);
     
     public virtual WSAction GetWsAction()
     {
@@ -39,15 +40,15 @@ public abstract class BaseNeuroAction : INeuroAction
     }
 
     protected abstract ExecutionResult Validate(ActionData actionData, out object? ResultData);
-    protected abstract Task Execute(object? data);
+    protected abstract void Execute(object? data);
 
     void INeuroAction.SetActionWindow(ActionWindow actionWindow)
     {
         if (ActionWindow != null)
         {
-            if (ActionWindow == actionWindow)
+            if (ActionWindow != actionWindow)
             {
-                ExecutionResult.Failure("Cannot set the action window for this action as it is already set");
+                Console.WriteLine("Cannot set the action window for this action as it is already set");
             }
             
             return;

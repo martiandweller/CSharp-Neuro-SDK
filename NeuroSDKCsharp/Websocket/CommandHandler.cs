@@ -25,7 +25,7 @@ public class CommandHandler
             foreach (IIncomingMessageHandler handler in Handlers)
             {
                 Console.WriteLine($"Running CommandHandler foreach    {handler}");
-                if (!handler.CanHandle(command)) continue;
+                if (!handler.CanHandle(command)) continue; // maybe this is causing issues? as action gets called twice
 
                 ExecutionResult validationResult;
                 object? resultData;
@@ -51,7 +51,7 @@ public class CommandHandler
                 if (validationResult.Successful)
                 {
                     Console.WriteLine($"CommandHandler validation successful");
-                    _ = handler.Execute(resultData);
+                    handler.Execute(resultData);
                 }
             }
         }

@@ -10,6 +10,5 @@ internal static class Strings
     public const string ActionFailedNoName = "Action failed. Missing command field 'name'.";
     public const string ActionFailedInvalidJson = "Action failed. Could not parse action parameters from JSON.";
 
-    public const string ActionFailedUnregistered =
-        "This action has been recently unregistered and can no longer be used.";
+    public const string ActionFailedUnregistered = "This action has been recently unregistered and can no longer be used.";
 }

@@ -1,3 +1,4 @@
+using Microsoft.Xna.Framework;
 using Xunit;
 using NeuroSDKCsharp;
 using NeuroSDKCsharp.Messages.API;
@@ -12,7 +13,7 @@ public class IncomingJsonTests
     [Fact]
     public void ProcessMessage_ValidJson_ShouldParseSuccessfully()
     {
-        var testingClass = new NeuroSDKCsharp.Websocket.WebsocketHandler();
+        var testingClass = new NeuroSDKCsharp.Websocket.WebsocketHandler(new Game(),"Test","string");
         
         string testJson = "{\"command\": \"action\", \"data\": {\"id\": \"123\", \"name\": \"name\", \"Description\": \"This is Description\"}}";
 
@@ -29,7 +30,7 @@ public class IncomingJsonTests
     [Fact]
     public void ProcessMessage_ValidJson_ShouldParseUnsuccessfully()
     {
-        var testingClass = new NeuroSDKCsharp.Websocket.WebsocketHandler();
+        var testingClass = new NeuroSDKCsharp.Websocket.WebsocketHandler(new Game(),"Test","string");
         
         string testJson = "{'command': 'action', 'data': {'id': '123', 'name': 'name', 'Description': 'This is Description'}";
 
