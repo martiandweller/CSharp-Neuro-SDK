@@ -3,14 +3,11 @@ using NeuroSDKCsharp.Websocket;
 
 namespace NeuroSDKCsharp;
 
-public static partial class SdkSetup
+public static class SdkSetup
 {
-    public static async void Initialize(string game)
+    public static async void Initialize(string game,string uriString)
     {
-        WebsocketHandler ws = new WebsocketHandler();
-        ws.Game = game;
-        ws.MessageQueue = new MessageQueue();
-        ws.CommandHandler = new CommandHandler();
-        await ws.StartWs();
+        WebsocketHandler ws = new WebsocketHandler(game,uriString);
+        await ws.Initialize();
     }
 }

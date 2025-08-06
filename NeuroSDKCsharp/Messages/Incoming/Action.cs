@@ -51,7 +51,7 @@ public class Action : IncomingMessageHandler<Action.ResultData>
             if (string.IsNullOrEmpty(actionName))
             {
                 resultData = null;
-                return ExecutionResult.ServerFailure("Action has failed as there is no name");
+                return ExecutionResult.ServerFailure(Strings.ActionFailedNoName);
             }
 
             NeuroActionHandler action = new();
@@ -66,7 +66,7 @@ public class Action : IncomingMessageHandler<Action.ResultData>
             {
                 if (NeuroActionHandler.IsRecentlyUnregistered(actionName))
                 {
-                    return ExecutionResult.Failure("Action failed unregister");
+                    return ExecutionResult.Failure(Strings.ActionFailedUnregistered);
                 }
 
                 return ExecutionResult.Failure("action failed unknown action");

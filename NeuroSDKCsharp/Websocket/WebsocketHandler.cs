@@ -11,6 +11,14 @@ namespace NeuroSDKCsharp.Websocket;
 
 public class WebsocketHandler
 {
+    public WebsocketHandler(string gameName,string uriString)
+    {
+        GameName = gameName;
+        _uriString = uriString;
+        CommandHandler = new();
+        MessageQueue = new();
+    }
+    
     private const float ReconnectInterval = 30;
 
     private static WebsocketHandler? _instance;
@@ -30,14 +38,18 @@ public class WebsocketHandler
 
     private ClientWebSocket? _webSocket = new ClientWebSocket();
 
-    public string Game = null!; // will be used for Messages
-    public MessageQueue MessageQueue = null!;
-    public CommandHandler CommandHandler = new CommandHandler();
+    public readonly string GameName; // will be used for Messages
+    private readonly MessageQueue MessageQueue;
+    private readonly CommandHandler CommandHandler;
 
     private string? _uriString = ""; // this will be changed to be able to be changed through file in future
-    private Uri _uri;
+
+    public async Task Initialize()
+    {
+        await StartWs();
+    } 
     
-    public async Task StartWs()
+    private async Task StartWs()
     {
         Console.WriteLine("This is start of Ws");
         Instance = this;
@@ -59,21 +71,7 @@ public class WebsocketHandler
         {
             websocketUri = new Uri("ws://localhost:8000/ws/"); // this is temporary
         }
-
-        // if (_uriString is null or "")
-        // {
-        //     try
-        //     {
-        //         HttpClient client = new HttpClient();
-        //         string responseBody = await client.GetStringAsync(_uriString);
-        //     }
-        //     catch (Exception e)
-        //     {
-        //         Console.WriteLine(e);
-        //         throw;
-        //     }
-        // }
-
+        
         if (_uriString is null or "")
         {
             _uriString = Environment.GetEnvironmentVariable("NEURO_SDK_WS_URL", EnvironmentVariableTarget.Process) ??
@@ -82,7 +80,7 @@ public class WebsocketHandler
             Console.WriteLine(_uriString);
         }
 
-        _uriString = "ws://localhost:8000/ws/";
+        // _uriString = "ws://localhost:8000/ws/";
 
         Console.WriteLine($"This is _uriString test: {_uriString}");
 
@@ -256,18 +254,3 @@ public class WebsocketHandler
             return dataDictionary;
     }
 }
-
-// too dumb to make this work
-
-// private bool TryGetResult(HttpRequestMessage request.out string result)
-    // {
-    //     request.
-    //     if (request is { isDone: true, isHttpError: false, isNetworkError: false})
-    //     {
-    //         result = request.GetResponse();
-    //         return true;
-    //     }
-    //
-    //     return false;
-    // }
-    
