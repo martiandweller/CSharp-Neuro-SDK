@@ -7,6 +7,7 @@ namespace NeuroSDKCsharp.Actions;
 
 public sealed class ActionWindow : GameComponent
 {
+    private static Game? _game;
     #region Create
 
     private static bool _createdCorrectly = false;
@@ -22,6 +23,7 @@ public sealed class ActionWindow : GameComponent
             _createdCorrectly = true;
             ActionWindow actionWindow = new ActionWindow(gameClass);
             gameClass.Components.Add(actionWindow);
+            _game = gameClass;
             return actionWindow;
         }
         catch (Exception e)
@@ -213,7 +215,7 @@ public sealed class ActionWindow : GameComponent
     /// specify a time in seconds after which the actions should be forced
     /// </summary>
     /// <param name="afterSeconds">Time till the action is forced</param>
-    /// <param name="ephemeralContext">if true, the query and state won't be remembered after the action force is finished</param>
+    /// <param name="ephemeralContext">if true the query and state won't be remembered after the action force is finished</param>
     /// <returns>itself for chaining</returns>
     public ActionWindow SetForce(float afterSeconds, string query, string? state, bool ephemeralContext = false) =>
         SetForce(afterSeconds, () => query,() => state, ephemeralContext);
@@ -268,13 +270,15 @@ public sealed class ActionWindow : GameComponent
         _shouldForceFunc = null;
         _shouldEndFunc = null;
         CurrentState = State.Ended;
-        Dispose(true);
+
+        _game!.Components.Remove(this);
+        Dispose();
     }
     #endregion
 
     #region Handling
     /// <summary>
-    /// Run <see cref="ExecutionResult"/> through this ActionWindow, is called automaticallly in <see cref="BaseNeuroAction"/>.
+    /// Run <see cref="ExecutionResult"/> through this ActionWindow, is called automatically in <see cref="BaseNeuroAction"/>.
     /// </summary>
     public ExecutionResult Result(ExecutionResult result)
     {
@@ -283,13 +287,12 @@ public sealed class ActionWindow : GameComponent
         if (CurrentState >= State.Ended)
             throw new InvalidOperationException("Cannot handle a result after the Action window has ended");
 
-        // TODO: this causes issues with action.cs validation
         if (result.Successful)
         {
             Console.WriteLine($"End in result successful");
-            End(); // this leads to actionwindow ending before Action.Validate line#80
+            End();
         }
-
+        
         return result;
     }
 

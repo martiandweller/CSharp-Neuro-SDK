@@ -26,7 +26,7 @@ public abstract class BaseNeuroAction : INeuroAction
         if (ActionWindow != null)
         {
             Console.WriteLine($"base neuro action validation running");
-            return ActionWindow.Result(result); // TODO: issue here
+            return ActionWindow.Result(result);
         }
 
         return result;

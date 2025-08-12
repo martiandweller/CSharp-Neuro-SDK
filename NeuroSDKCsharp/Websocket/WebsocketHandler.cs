@@ -16,9 +16,9 @@ public class WebsocketHandler : GameComponent
     public WebsocketHandler(Game game, string gameName, string? uriString) : base(game)
     {
         GameName = gameName;
-        MessageQueue = new MessageQueue();
-        CommandHandler = new CommandHandler();
-        UriString = uriString;
+        _messageQueue = new MessageQueue();
+        _commandHandler = new CommandHandler();
+        _uriString = uriString;
     }
 
     public static WebsocketHandler? Instance
@@ -36,11 +36,11 @@ public class WebsocketHandler : GameComponent
 
     private ClientWebSocket? _webSocket = new ClientWebSocket();
 
-    public readonly string GameName = null!; // will be used for Messages
-    private readonly MessageQueue MessageQueue = null!;
-    private readonly CommandHandler CommandHandler = new CommandHandler();
+    public readonly string GameName; // will be used for Messages
+    private readonly MessageQueue _messageQueue;
+    private readonly CommandHandler _commandHandler;
 
-    private string? UriString = "ws://localhost:8000/ws/"; // this will be changed to be able to be changed through file in future
+    private string? _uriString; // this will be changed to be able to be changed through file in future
     public override async void Initialize()
     {
         try
@@ -53,7 +53,7 @@ public class WebsocketHandler : GameComponent
         }
     }
     
-    public async Task StartWs()
+    private async Task StartWs()
     {
         Console.WriteLine("This is start of Ws");
         Instance = this;
@@ -71,15 +71,15 @@ public class WebsocketHandler : GameComponent
 
         Uri? websocketUri = null;
 
-        if (UriString is null or "")
+        if (_uriString is null or "")
         {
-            UriString = Environment.GetEnvironmentVariable("NEURO_SDK_WS_URL", EnvironmentVariableTarget.Process) ??
+            _uriString = Environment.GetEnvironmentVariable("NEURO_SDK_WS_URL", EnvironmentVariableTarget.Process) ??
                          Environment.GetEnvironmentVariable("NEURO_SDK_WS_URL", EnvironmentVariableTarget.User) ??
                          Environment.GetEnvironmentVariable("NEURO_SDK_WS_URL", EnvironmentVariableTarget.Machine);
-            Console.WriteLine($"UriString: {UriString}");
+            Console.WriteLine($"UriString: {_uriString}");
         }
         
-        if (UriString is null or "")
+        if (_uriString is null or "")
         {
             string errorMessage =
                 "Could not get websocket URL. You need to set the NEURO_SDK_WS_URL environment variable";
@@ -89,7 +89,7 @@ public class WebsocketHandler : GameComponent
         }
 
         _webSocket = new ClientWebSocket();
-        websocketUri = new Uri(UriString);
+        websocketUri = new Uri(_uriString);
 
         _webSocket.Options.KeepAliveInterval = TimeSpan.FromMinutes(10); // should substitute ping pong
         
@@ -134,17 +134,19 @@ public class WebsocketHandler : GameComponent
         catch (Exception e)
         {
             Console.WriteLine(e);
-            MessageQueue.Enqueue(handler);
+            _messageQueue.Enqueue(handler);
         }
     }
 
-    public void Send(OutgoingMessageHandler messageHandler) => MessageQueue.Enqueue(messageHandler);
+    public void Send(OutgoingMessageHandler messageHandler) => _messageQueue.Enqueue(messageHandler);
 
     // async void is bad, but I'm just gonna pray this works
-    public async void SendImmediate(OutgoingMessageHandler messageHandler)
+    public async Task SendImmediate(OutgoingMessageHandler messageHandler)
     {
         string message = JsonSerialize.Serialize(messageHandler.GetWsMessage());
 
+        if (_webSocket is null) return;
+        
         if (_webSocket.State is not WebSocketState.Open)
         {
             Console.WriteLine($"Websocket is not open. Could not send message: {message}");
@@ -160,11 +162,13 @@ public class WebsocketHandler : GameComponent
     {
         Console.WriteLine($"Start of ReceiveMessage");
 
+        if (_webSocket is null) return;
+        
         var buffer = new byte[1024 * 4];
         
         while (_webSocket.State == WebSocketState.Open)
         {
-            Console.WriteLine($"message queue count : {MessageQueue.Count}");
+            Console.WriteLine($"message queue count : {_messageQueue.Count}");
             
             Console.WriteLine($"Current websocket state Start {_webSocket.State}");
             WebSocketReceiveResult result;
@@ -202,20 +206,22 @@ public class WebsocketHandler : GameComponent
     {
         try
         {
+            if (_webSocket is null) throw new NullReferenceException("Websocket was null.");
+            
             if (_webSocket.State != WebSocketState.Open) return;
 
-            while (MessageQueue.Count > 0)
+            while (_messageQueue.Count > 0)
             {
-                OutgoingMessageHandler handler = MessageQueue.Dequeue()!;
+                OutgoingMessageHandler handler = _messageQueue.Dequeue()!;
                 Console.WriteLine(handler);
                 await SendTask(handler);
             }
-            base.Update(gameTime);
         }
         catch (Exception e)
         {
             Console.WriteLine($"Issue in update of ws: {e}");
         }
+        base.Update(gameTime);
     }
     
     private void GetMessage(string messageData)
@@ -228,7 +234,7 @@ public class WebsocketHandler : GameComponent
             Dictionary<string, Object>? dataArray = ProcessJsonMessage(messageData);
             if (dataArray is null) return;
             // command data
-            CommandHandler.Handle((string)dataArray["command"], (IncomingData)dataArray["data"]);
+            _commandHandler.Handle((string)dataArray["command"], (IncomingData)dataArray["data"]);
         }
         catch (Exception e)
         {
@@ -252,7 +258,7 @@ public class WebsocketHandler : GameComponent
             if (command is null)
             {
                 Console.WriteLine($"Command could not be deserialized");
-                ExecutionResult.Failure("Command could not be deserialized");
+                // ExecutionResult.Failure("Command could not be deserialized");
             }
 
             Console.WriteLine($"Send to CommandHandler");
@@ -260,18 +266,3 @@ public class WebsocketHandler : GameComponent
             return dataDictionary;
     }
 }
-
-// too dumb to make this work
-
-// private bool TryGetResult(HttpRequestMessage request.out string result)
-    // {
-    //     request.
-    //     if (request is { isDone: true, isHttpError: false, isNetworkError: false})
-    //     {
-    //         result = request.GetResponse();
-    //         return true;
-    //     }
-    //
-    //     return false;
-    // }
-    

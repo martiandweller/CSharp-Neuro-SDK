@@ -20,7 +20,7 @@ namespace NeuroSDKCsharp.Messages.API
         ExecutionResult IIncomingMessageHandler.Validate(string command,IncomingData incomingData, out object? resultData)
         {
             Console.WriteLine($"Before Result");
-            ExecutionResult result = Validate(command, incomingData); //TODO: this calls Validate in action.cs this causes action window to close as result.Succesful is true 
+            ExecutionResult result = Validate(command, incomingData);
             Console.WriteLine($"IncomingMessageHandler Validate Result no message:   {result}");
             resultData = null;
             return result;

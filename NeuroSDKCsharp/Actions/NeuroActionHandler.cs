@@ -1,3 +1,4 @@
+using System.Collections;
 using NeuroSDKCsharp.Messages.Outgoing;
 using NeuroSDKCsharp.Websocket;
 
@@ -6,16 +7,16 @@ namespace NeuroSDKCsharp.Actions;
 public sealed class NeuroActionHandler
 {
     private static List<INeuroAction> _currentRegisteredActions = new();
-    private static readonly List<INeuroAction> _dyingActions = new();
+    private static readonly List<INeuroAction> DyingActions = new();
 
     public static INeuroAction? GetRegistered(string name) =>
         _currentRegisteredActions.FirstOrDefault(a => a.Name == name);
 
-    public static bool IsRecentlyUnregistered(string name) => _dyingActions.Any(a => a.Name == name);
+    public static bool IsRecentlyUnregistered(string name) => DyingActions.Any(a => a.Name == name);
 
-    private void OnApplicationQuit()
+    private async Task OnApplicationQuit() // TODO: hook this up to Game.Exit()
     { 
-        WebsocketHandler.Instance!.SendImmediate(new ActionsUnregister(_currentRegisteredActions));
+        await WebsocketHandler.Instance!.SendImmediate(new ActionsUnregister(_currentRegisteredActions));
         _currentRegisteredActions = null!;
     }
 
@@ -23,7 +24,7 @@ public sealed class NeuroActionHandler
     {
         _currentRegisteredActions.RemoveAll(
             oldAction => newActions.Any(newAction => oldAction.Name == newAction.Name));
-        _dyingActions.RemoveAll(oldAction => newActions.Any(newAction => oldAction.Name == newAction.Name));
+        DyingActions.RemoveAll(oldAction => newActions.Any(newAction => oldAction.Name == newAction.Name));
         _currentRegisteredActions.AddRange(newActions);
         WebsocketHandler.Instance!.Send(new ActionsRegister(newActions));
     }
@@ -37,17 +38,16 @@ public sealed class NeuroActionHandler
             removeActionsList.Any(removeAction => oldAction.Name == removeAction)).ToArray();
 
         _currentRegisteredActions.RemoveAll(actionsToRemove.Contains);
-        _dyingActions.AddRange(actionsToRemove);
-        _ = RemoveActions(); // should replicate .Forget with unitask
+        DyingActions.AddRange(actionsToRemove);
+        RemoveActions();
         
         WebsocketHandler.Instance!.Send(new ActionsUnregister(removeActionsList));
         
         return;
 
-        async Task RemoveActions()
+        void RemoveActions() // unity sdk waits for 10 seconds, I'm not too sure why.
         {
-            await Task.Delay(10000);
-            _dyingActions.RemoveAll(actionsToRemove.Contains);
+            DyingActions.RemoveAll(actionsToRemove.Contains);
         }
     }
 

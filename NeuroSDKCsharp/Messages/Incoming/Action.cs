@@ -58,8 +58,6 @@ public class Action : IncomingMessageHandler<Action.ResultData>
             {
                 if (NeuroActionHandler.IsRecentlyUnregistered(actionName))
                 {
-                    System.Diagnostics.StackTrace t = new System.Diagnostics.StackTrace();
-                    Console.WriteLine(t.ToString());
                     return ExecutionResult.Failure(Strings.ActionFailedUnregistered);
                 }
 
@@ -71,9 +69,7 @@ public class Action : IncomingMessageHandler<Action.ResultData>
             if (!ActionData.TryParse(actionStringifiedData, out ActionData? actionData))
                 return ExecutionResult.Failure("Action Failed Invalid JSON");
             
-            System.Diagnostics.StackTrace st = new System.Diagnostics.StackTrace();
-            Console.WriteLine($"running validate in validate: {st}");
-            ExecutionResult actionValidationResult = registeredAction.Validate(actionData!, out object? resultActionData); // ISSUE HERE
+            ExecutionResult actionValidationResult = registeredAction.Validate(actionData!, out object? resultActionData);
             resultData.Data = resultActionData;
             
             return actionValidationResult;
