@@ -6,7 +6,7 @@ namespace NeuroSDKCsharp.Messages.API
     {
         ExecutionResult Validate(string command,IncomingData incomingData, out object? resultData);
         void ReportResult(object? resultData,ExecutionResult executionResult);
-        Task Execute(object? incomingData);
+        void Execute(object? incomingData);
         bool CanHandle(string command);
     }
     
@@ -15,13 +15,13 @@ namespace NeuroSDKCsharp.Messages.API
         public abstract bool CanHandle(string command);
         protected abstract ExecutionResult Validate(string command,IncomingData incomingData);
         protected abstract void ReportResult(ExecutionResult executionResult);
-        protected abstract Task Execute();
+        protected abstract void Execute();
     
         ExecutionResult IIncomingMessageHandler.Validate(string command,IncomingData incomingData, out object? resultData)
         {
             Console.WriteLine($"Before Result");
             ExecutionResult result = Validate(command, incomingData);
-            Console.WriteLine($"IncomingMessageHandler Validate Result   {result}");
+            Console.WriteLine($"IncomingMessageHandler Validate Result no message:   {result}");
             resultData = null;
             return result;
         }
@@ -29,7 +29,7 @@ namespace NeuroSDKCsharp.Messages.API
         void IIncomingMessageHandler.ReportResult(object? resultData, ExecutionResult executionResult) =>
             ReportResult(executionResult);
 
-        Task IIncomingMessageHandler.Execute(object? incomingData) => Execute();
+        void IIncomingMessageHandler.Execute(object? incomingData) => Execute();
     }
     
     public abstract class IncomingMessageHandler<T> : IIncomingMessageHandler
@@ -37,13 +37,13 @@ namespace NeuroSDKCsharp.Messages.API
         public abstract bool CanHandle(string command);
         protected abstract ExecutionResult Validate(string command,IncomingData incomingData, out T? resultData);
         protected abstract void ReportResult(T? resultData,ExecutionResult executionResult);
-        protected abstract Task Execute(T? incomingData);
+        protected abstract void Execute(T? incomingData);
     
         ExecutionResult IIncomingMessageHandler.Validate(string command,IncomingData incomingData, out object? resultData)
         {
             Console.WriteLine($"Before Result");
             ExecutionResult result = Validate(command, incomingData, out var tResultData);
-            Console.WriteLine($"IncomingMessageHandler Result   {result.Message}");
+            Console.WriteLine($"IncomingMessageHandler Result message:   {result.Message}");
             resultData = tResultData;
             return result;
         }
@@ -51,6 +51,6 @@ namespace NeuroSDKCsharp.Messages.API
         void IIncomingMessageHandler.ReportResult(object? resultData, ExecutionResult executionResult) =>
             ReportResult((T?) resultData,executionResult);
 
-        Task IIncomingMessageHandler.Execute(object? incomingData) => Execute((T?) incomingData);
+        void IIncomingMessageHandler.Execute(object? incomingData) => Execute((T?) incomingData);
     }
 }

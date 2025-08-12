@@ -18,7 +18,7 @@ namespace NeuroSDKCsharp.Actions;
             return result;
         }
 
-        protected sealed override Task Execute(object? data) => Execute();
+        protected sealed override void Execute(object? data) => Execute();
     }
 
     public abstract class NeuroAction<TData> : BaseNeuroAction
@@ -37,7 +37,7 @@ namespace NeuroSDKCsharp.Actions;
             return result;
         }
 
-        protected sealed override Task Execute(object? resultData) => Execute((TData?) resultData);
+        protected sealed override void Execute(object? resultData) => Execute((TData?) resultData);
     }
 
     public abstract class NeuroActionS<TData> : NeuroAction<TData?> where TData : struct

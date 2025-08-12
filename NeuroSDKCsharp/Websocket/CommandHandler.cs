@@ -1,4 +1,4 @@
-using System.Net.Sockets;
+using System.Diagnostics;
 using NeuroSDKCsharp.Messages.API;
 using NeuroSDKCsharp.Utilities;
 
@@ -6,23 +6,19 @@ namespace NeuroSDKCsharp.Websocket;
 
 public class CommandHandler
 {
-    protected readonly List<IIncomingMessageHandler> Handlers = new();
+    private readonly List<IIncomingMessageHandler> _handlers = new();
 
-    public virtual void Start() // this will need to be called manually as there is nothing similar
+    private void Start() // this will need to be called manually as there is nothing similar
     {
-        Handlers.AddRange(ReflectionHelpers.GetAllInDomain<IIncomingMessageHandler>());
+        _handlers.AddRange(ReflectionHelpers.GetAllInDomain<IIncomingMessageHandler>());
     }
 
     public virtual void Handle(string command, IncomingData data)
     {
-        Console.WriteLine($"Before Start     {Handlers}");
+        if (_handlers.Count == 0) Start();
         try
         {
-            Start();
-        
-            Console.WriteLine($"Handler:  {Handlers}");
-        
-            foreach (IIncomingMessageHandler handler in Handlers)
+            foreach (IIncomingMessageHandler handler in _handlers)
             {
                 Console.WriteLine($"Running CommandHandler foreach    {handler}");
                 if (!handler.CanHandle(command)) continue;
@@ -51,7 +47,7 @@ public class CommandHandler
                 if (validationResult.Successful)
                 {
                     Console.WriteLine($"CommandHandler validation successful");
-                    _ = handler.Execute(resultData);
+                    handler.Execute(resultData);
                 }
             }
         }

@@ -7,13 +7,37 @@ namespace NeuroSDKCsharp.Actions;
 public sealed class ActionWindow
 {
     #region Create
+
+    private static bool _createdCorrectly = false;
+
     private ActionWindow()
-    {}
+    {
+    }
     
     public static ActionWindow Create()
     {
-        return new ActionWindow();
+        try
+        {
+            _createdCorrectly = true;
+            ActionWindow actionWindow = new ActionWindow();
+            return actionWindow;
+        }
+        catch (Exception e)
+        {
+            _createdCorrectly = false;
+            Console.WriteLine(e);
+            throw;
+        }
     }
+    // if not create correctly add your version of delete or dispose here
+    public void Initialize()
+    {
+        if (!_createdCorrectly)
+        {
+            Console.WriteLine($"ActionWindow was not created correctly, you should use the Create method");
+        }
+    }
+
     #endregion
     
     #region State
@@ -130,7 +154,7 @@ public sealed class ActionWindow
     private Func<string>? _forceQueryGetter;
     private Func<string?>? _forceStateGetter;
     private bool? _forceEphemeralContext;
-
+    
     /// <summary>
     /// Specify a condition under which the actions will be forced
     /// </summary>
@@ -187,7 +211,7 @@ public sealed class ActionWindow
     /// specify a time in seconds after which the actions should be forced
     /// </summary>
     /// <param name="afterSeconds">Time till the action is forced</param>
-    /// <param name="ephemeralContext">if true, the query and state won't be remembered after the action force is finished</param>
+    /// <param name="ephemeralContext">if true the query and state won't be remembered after the action force is finished</param>
     /// <returns>itself for chaining</returns>
     public ActionWindow SetForce(float afterSeconds, string query, string? state, bool ephemeralContext = false) =>
         SetForce(afterSeconds, () => query,() => state, ephemeralContext);
@@ -236,38 +260,40 @@ public sealed class ActionWindow
     public void End()
     {
         if (CurrentState >= State.Ended) return;
+        Console.WriteLine($"Ending Actionwindow");
         
         NeuroActionHandler.UnregisterActions(_actions);
         _shouldForceFunc = null;
         _shouldEndFunc = null;
         CurrentState = State.Ended;
-        //TODO: find way to remove Instance
-        return;
     }
     #endregion
 
-    #region Handling    
+    #region Handling
+    /// <summary>
+    /// Run <see cref="ExecutionResult"/> through this ActionWindow, is called automatically in <see cref="BaseNeuroAction"/>.
+    /// </summary>
     public ExecutionResult Result(ExecutionResult result)
     {
         if (CurrentState <= State.Building)
             throw new InvalidOperationException("Cannot handle a result before registering the action window");
         if (CurrentState >= State.Ended)
             throw new InvalidOperationException("Cannot handle a result after the Action window has ended");
-        
-        if (result.Successful) End();
 
+        if (result.Successful) End();
+        
         return result;
     }
-    
+
     public void Update()
     {
         if (CurrentState != State.Registered) return;
-
+    
         if (_shouldForceFunc != null && _shouldForceFunc())
         {
             Force();
         }
-
+    
         if (_shouldEndFunc != null && _shouldEndFunc())
         {
             End();

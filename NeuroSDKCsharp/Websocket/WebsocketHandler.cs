@@ -1,11 +1,8 @@
-using System.Diagnostics;
 using System.Net.WebSockets;
 using System.Text;
 using NeuroSDKCsharp.Json;
 using NeuroSDKCsharp.Messages.API;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Newtonsoft.Json.Serialization;
 
 namespace NeuroSDKCsharp.Websocket;
 
@@ -15,8 +12,8 @@ public class WebsocketHandler
     {
         GameName = gameName;
         _uriString = uriString;
-        CommandHandler = new();
-        MessageQueue = new();
+        _commandHandler = new();
+        _messageQueue = new();
     }
     
     private const float ReconnectInterval = 30;
@@ -28,7 +25,7 @@ public class WebsocketHandler
         get
         {
             if (_instance is null)
-                ExecutionResult.Failure("WebsocketHandlerInstance was accessed without an instance being present");
+                Console.WriteLine("WebsocketHandlerInstance was accessed without an instance being present");
             return _instance;
         }
         private set => _instance = value;
@@ -39,15 +36,21 @@ public class WebsocketHandler
     private ClientWebSocket? _webSocket = new ClientWebSocket();
 
     public readonly string GameName; // will be used for Messages
-    private readonly MessageQueue MessageQueue;
-    private readonly CommandHandler CommandHandler;
+    private readonly MessageQueue _messageQueue;
+    private readonly CommandHandler _commandHandler;
 
-    private string? _uriString = ""; // this will be changed to be able to be changed through file in future
-
-    public async Task Initialize()
+    private string? _uriString; // this will be changed to be able to be changed through file in future
+    public async void Initialize()
     {
-        await StartWs();
-    } 
+        try
+        {
+            await StartWs();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"issue in initialize: {e}");
+        }
+    }
     
     private async Task StartWs()
     {
@@ -67,23 +70,14 @@ public class WebsocketHandler
 
         Uri? websocketUri = null;
 
-        if (websocketUri == null)
-        {
-            websocketUri = new Uri("ws://localhost:8000/ws/"); // this is temporary
-        }
-        
         if (_uriString is null or "")
         {
             _uriString = Environment.GetEnvironmentVariable("NEURO_SDK_WS_URL", EnvironmentVariableTarget.Process) ??
                          Environment.GetEnvironmentVariable("NEURO_SDK_WS_URL", EnvironmentVariableTarget.User) ??
                          Environment.GetEnvironmentVariable("NEURO_SDK_WS_URL", EnvironmentVariableTarget.Machine);
-            Console.WriteLine(_uriString);
+            Console.WriteLine($"UriString: {_uriString}");
         }
-
-        // _uriString = "ws://localhost:8000/ws/";
-
-        Console.WriteLine($"This is _uriString test: {_uriString}");
-
+        
         if (_uriString is null or "")
         {
             string errorMessage =
@@ -100,6 +94,11 @@ public class WebsocketHandler
         
         try
         {
+            // need to add reconnect to this
+            // if (_webSocket.ConnectAsync(websocketUri, CancellationToken.None) is WebSocketException)
+            // {
+            //     throw new Exception();
+            // }
             await _webSocket.ConnectAsync(websocketUri, CancellationToken.None);
 
             Console.WriteLine($"Starting Task    Websocket connected {_webSocket.State}");
@@ -134,17 +133,19 @@ public class WebsocketHandler
         catch (Exception e)
         {
             Console.WriteLine(e);
-            MessageQueue.Enqueue(handler);
+            _messageQueue.Enqueue(handler);
         }
     }
 
-    public void Send(OutgoingMessageHandler messageHandler) => MessageQueue.Enqueue(messageHandler);
+    public void Send(OutgoingMessageHandler messageHandler) => _messageQueue.Enqueue(messageHandler);
 
     // async void is bad, but I'm just gonna pray this works
-    public async void SendImmediate(OutgoingMessageHandler messageHandler)
+    public async Task SendImmediate(OutgoingMessageHandler messageHandler)
     {
         string message = JsonSerialize.Serialize(messageHandler.GetWsMessage());
 
+        if (_webSocket is null) return;
+        
         if (_webSocket.State is not WebSocketState.Open)
         {
             Console.WriteLine($"Websocket is not open. Could not send message: {message}");
@@ -160,11 +161,13 @@ public class WebsocketHandler
     {
         Console.WriteLine($"Start of ReceiveMessage");
 
+        if (_webSocket is null) return;
+        
         var buffer = new byte[1024 * 4];
         
         while (_webSocket.State == WebSocketState.Open)
         {
-            Console.WriteLine($"message queue count : {MessageQueue.Count}");
+            Console.WriteLine($"message queue count : {_messageQueue.Count}");
             
             Console.WriteLine($"Current websocket state Start {_webSocket.State}");
             WebSocketReceiveResult result;
@@ -200,15 +203,22 @@ public class WebsocketHandler
 
     public async void Update()
     {
-        // Console.WriteLine($"websocket Update running");
-        
-        if (_webSocket.State != WebSocketState.Open) return;
-
-        while (MessageQueue.Count > 0)
+        try
         {
-            OutgoingMessageHandler handler = MessageQueue.Dequeue()!;
-            Console.WriteLine(handler);
-            await SendTask(handler);
+            if (_webSocket is null) throw new NullReferenceException("Websocket was null.");
+            
+            if (_webSocket.State != WebSocketState.Open) return;
+
+            while (_messageQueue.Count > 0)
+            {
+                OutgoingMessageHandler handler = _messageQueue.Dequeue()!;
+                Console.WriteLine(handler);
+                await SendTask(handler);
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Issue in update of ws: {e}");
         }
     }
     
@@ -222,7 +232,7 @@ public class WebsocketHandler
             Dictionary<string, Object>? dataArray = ProcessJsonMessage(messageData);
             if (dataArray is null) return;
             // command data
-            CommandHandler.Handle((string)dataArray["command"], (IncomingData)dataArray["data"]);
+            _commandHandler.Handle((string)dataArray["command"], (IncomingData)dataArray["data"]);
         }
         catch (Exception e)
         {
@@ -246,7 +256,6 @@ public class WebsocketHandler
             if (command is null)
             {
                 Console.WriteLine($"Command could not be deserialized");
-                ExecutionResult.Failure("Command could not be deserialized");
             }
 
             Console.WriteLine($"Send to CommandHandler");

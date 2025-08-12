@@ -15,9 +15,8 @@ public sealed class ActionsReregisterAll : IncomingMessageHandler
     {
     }
 
-    protected override Task Execute()
+    protected override void Execute()
     {
         NeuroActionHandler.ResendRegisteredActions();
-        return Task.CompletedTask;
     }
 }

@@ -16,11 +16,8 @@ public class Action : IncomingMessageHandler<Action.ResultData>
         public INeuroAction? Action;
         public object? Data;
     }
-    
-    public override bool CanHandle(string command)
-    {
-        return command == "action";
-    }
+
+    public override bool CanHandle(string command) => command == "action";
 
     protected override ExecutionResult Validate(string command, IncomingData incomingData, out ResultData? resultData)
     {
@@ -32,8 +29,6 @@ public class Action : IncomingMessageHandler<Action.ResultData>
 
         string? actionId = incomingData.Data["id"]?.Value<string>();
         
-        Console.WriteLine($"this is actionID: {actionId}");
-        
         if (string.IsNullOrEmpty(actionId))
         {
             resultData = null;
@@ -43,24 +38,20 @@ public class Action : IncomingMessageHandler<Action.ResultData>
         resultData = new ResultData(actionId);
         try
         {
-            Console.WriteLine($"{incomingData.Data}");
-            
             string? actionName = incomingData.Data?.Value<string>("name");
             string? actionStringifiedData = incomingData.Data?.Value<string>("data");
+            
+            Console.WriteLine($"name: {actionName}   data: {actionStringifiedData}");
 
             if (string.IsNullOrEmpty(actionName))
             {
                 resultData = null;
                 return ExecutionResult.ServerFailure(Strings.ActionFailedNoName);
             }
-
-            NeuroActionHandler action = new();
             
             INeuroAction? registeredAction = NeuroActionHandler.GetRegistered(actionName);
             
             Console.WriteLine($"registered action: {registeredAction}");
-            
-            NeuroActionHandler.RegisterActions();
             
             if (registeredAction == null)
             {
@@ -76,11 +67,10 @@ public class Action : IncomingMessageHandler<Action.ResultData>
             
             if (!ActionData.TryParse(actionStringifiedData, out ActionData? actionData))
                 return ExecutionResult.Failure("Action Failed Invalid JSON");
-
-            ExecutionResult actionValidationResult =
-                registeredAction.Validate(actionData!, out object? resultActionData);
+            
+            ExecutionResult actionValidationResult = registeredAction.Validate(actionData!, out object? resultActionData);
             resultData.Data = resultActionData;
-
+            
             return actionValidationResult;
         }
         catch (Exception e)
@@ -102,8 +92,8 @@ public class Action : IncomingMessageHandler<Action.ResultData>
         WebsocketHandler.Instance!.Send(new ActionResult(resultData.Id,executionResult));
     }
 
-    protected override Task Execute(ResultData? incomingData)
+    protected override void Execute(ResultData? incomingData)
     {
-        return incomingData!.Action!.Execute(incomingData.Data);
+        incomingData!.Action!.Execute(incomingData.Data);
     }
 }
