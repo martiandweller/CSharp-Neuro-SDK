@@ -10,7 +10,7 @@ namespace NeuroSDKCsharp.Websocket;
 public class WebsocketHandler : GameComponent
 {
     private const float ReconnectInterval = 30;
-
+    
     private static WebsocketHandler? _instance;
 
     public WebsocketHandler(Game game, string gameName, string? uriString) : base(game)
@@ -51,6 +51,12 @@ public class WebsocketHandler : GameComponent
         {
             Console.WriteLine($"issue in initialize: {e}");
         }
+    }
+
+    private async Task Reconnect()
+    {
+        await Task.Delay(TimeSpan.FromSeconds(ReconnectInterval));
+        await StartWs();
     }
     
     private async Task StartWs()
@@ -109,6 +115,7 @@ public class WebsocketHandler : GameComponent
         catch (Exception e)
         {
             Console.WriteLine(e);
+            _ = Reconnect();
             throw;
         }
     }
@@ -204,6 +211,12 @@ public class WebsocketHandler : GameComponent
 
     public override async void Update(GameTime gameTime)
     {
+        if (_webSocket is { State: WebSocketState.Closed or WebSocketState.Aborted or WebSocketState.CloseReceived or WebSocketState.CloseSent }) // Best I can get to OnClose event with default websocket :(
+        {
+            _ = Reconnect();
+            return;
+        }
+        
         try
         {
             if (_webSocket is null) throw new NullReferenceException("Websocket was null.");
