@@ -26,7 +26,7 @@ public class ActionsForce : OutgoingMessageHandler
     [JsonProperty("query", Order = 10)]
     private readonly string _query;
 
-    [JsonProperty("ephemeral", Order = 20)]
+    [JsonProperty("ephemeral_context", Order = 20)]
     private readonly bool? _ephemeralContext;
 
     [JsonProperty("action_names", Order = 30)]
