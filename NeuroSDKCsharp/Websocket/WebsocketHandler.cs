@@ -17,7 +17,7 @@ public class WebsocketHandler
     }
     
     private const float ReconnectInterval = 30;
-
+    
     private static WebsocketHandler? _instance;
 
     public static WebsocketHandler? Instance
@@ -50,6 +50,12 @@ public class WebsocketHandler
         {
             Console.WriteLine($"issue in initialize: {e}");
         }
+    }
+
+    private async Task Reconnect()
+    {
+        await Task.Delay(TimeSpan.FromSeconds(ReconnectInterval));
+        await StartWs();
     }
     
     private async Task StartWs()
@@ -108,6 +114,7 @@ public class WebsocketHandler
         catch (Exception e)
         {
             Console.WriteLine(e);
+            _ = Reconnect();
             throw;
         }
     }
@@ -203,6 +210,12 @@ public class WebsocketHandler
 
     public async void Update()
     {
+        if (_webSocket is { State: WebSocketState.Closed or WebSocketState.Aborted or WebSocketState.CloseReceived or WebSocketState.CloseSent }) // Best I can get to OnClose event with default websocket :(
+        {
+            _ = Reconnect();
+            return;
+        }
+        
         try
         {
             if (_webSocket is null) throw new NullReferenceException("Websocket was null.");
