@@ -9,7 +9,8 @@ namespace NeuroSDKCsharp.Websocket;
 
 public class WebsocketHandler : GameComponent
 {
-    private const float ReconnectInterval = 30;
+    private bool _tryingReconnect;
+    private const float ReconnectInterval = 5;
     
     private static WebsocketHandler? _instance;
 
@@ -53,8 +54,10 @@ public class WebsocketHandler : GameComponent
         }
     }
 
-    private async Task Reconnect()
+    private async Task Reconnect(bool fromUpdate = false)
     {
+        if (_tryingReconnect && fromUpdate) return;
+        _tryingReconnect = true;
         await Task.Delay(TimeSpan.FromSeconds(ReconnectInterval));
         await StartWs();
     }
@@ -67,7 +70,7 @@ public class WebsocketHandler : GameComponent
         try
         {
             if (_webSocket!.State is WebSocketState.Open or WebSocketState.Connecting)
-                await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
+                await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Websocket has closed, as one is already open.", CancellationToken.None);
         }
         catch (Exception e)
         {
@@ -75,7 +78,6 @@ public class WebsocketHandler : GameComponent
             throw;
         }
 
-        Uri? websocketUri = null;
 
         if (_uriString is null or "")
         {
@@ -95,28 +97,26 @@ public class WebsocketHandler : GameComponent
         }
 
         _webSocket = new ClientWebSocket();
-        websocketUri = new Uri(_uriString);
+        Uri websocketUri = new Uri(_uriString);
 
         _webSocket.Options.KeepAliveInterval = TimeSpan.FromMinutes(10); // should substitute ping pong
-        
+
         try
         {
-            // need to add reconnect to this
-            // if (_webSocket.ConnectAsync(websocketUri, CancellationToken.None) is WebSocketException)
-            // {
-            //     throw new Exception();
-            // }
             await _webSocket.ConnectAsync(websocketUri, CancellationToken.None);
 
             Console.WriteLine($"Starting Task    Websocket connected {_webSocket.State}");
             
             _ = Task.Run(ReceiveMessage);
+            _tryingReconnect = false;
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
-            _ = Reconnect();
-            throw;
+            if (e is WebSocketException we && we.WebSocketErrorCode is WebSocketError.Faulted)
+            {
+                Console.WriteLine($"Error code is {we.WebSocketErrorCode}  message: {we.Message}  error code: {we.ErrorCode}");
+                _ = Reconnect();
+            }
         }
     }
 
@@ -211,9 +211,9 @@ public class WebsocketHandler : GameComponent
 
     public override async void Update(GameTime gameTime)
     {
-        if (_webSocket is { State: WebSocketState.Closed or WebSocketState.Aborted or WebSocketState.CloseReceived or WebSocketState.CloseSent }) // Best I can get to OnClose event with default websocket :(
+        if (_webSocket is { State: WebSocketState.Closed or WebSocketState.Aborted or WebSocketState.CloseReceived or WebSocketState.CloseSent} or null) // Best I can get to OnClose event with default websocket :(
         {
-            _ = Reconnect();
+            _ = Reconnect(true);
             return;
         }
         
