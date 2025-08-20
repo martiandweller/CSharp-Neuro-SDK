@@ -92,7 +92,6 @@ public class Game1 : Game
         
         _spriteBatch.DrawString(_defaultFont,ControlsText,_controlsTextPos,Color.White);
         
-        Console.WriteLine($"string: {_gameInformation.CurrentGameString}");
         _spriteBatch.DrawString(_statusText,_gameInformation.CurrentGameString,_statusTextPos,Color.White);
         
         _spriteBatch.End();

@@ -130,7 +130,7 @@ public class GameInformation(Game gameClass) : GameComponent(gameClass)
         Context.Send("The opponent has just played.",true);
 
         ActionWindow window = ActionWindow.Create(Game)
-            .SetForce(0, "It is now your turn. Please pick a choice.",
+            .SetForce(5, "It is now your turn. Please pick a choice.",
                 $"Your opponent just did their turn, now it is time for you to do yours", false)
             .AddAction(new ServerChoice(this));
         window.Register();

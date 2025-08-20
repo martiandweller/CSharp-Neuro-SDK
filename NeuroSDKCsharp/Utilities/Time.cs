@@ -1,15 +1,23 @@
+using System.Diagnostics;
+
 namespace NeuroSDKCsharp.Utilities;
 
 public abstract class Time
 {
-    static DateTime previousTime = DateTime.Now;
-    static DateTime currentTime = DateTime.Now;
-    
-    public static float GetDelta()
+    public static float DeltaTime
     {
-        currentTime = DateTime.Now;
-        float deltaTime = (currentTime.Ticks - previousTime.Ticks) / 10000000f;
+        get;
+        private set;
+    }
+    public static float ElapsedTime => Stopwatch.ElapsedMilliseconds / 1000f;
+
+    static Stopwatch Stopwatch = Stopwatch.StartNew();
+    static long previousTime = Stopwatch.ElapsedTicks;
+    
+    public static void Update()
+    {
+        long currentTime = Stopwatch.ElapsedTicks;
+        DeltaTime = (currentTime - previousTime) / (float)Stopwatch.Frequency;
         previousTime = currentTime;
-        return deltaTime;
     }
 }
