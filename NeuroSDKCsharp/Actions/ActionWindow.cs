@@ -196,14 +196,13 @@ public sealed class ActionWindow
     public ActionWindow SetForce(float afterSeconds, Func<string> queryGetter, Func<string?> stateGetter,
         bool ephemeralContext = false)
     {
-        float time = afterSeconds;
+        float startTime = Time.ElapsedTime;
         
         return SetForce(ShouldForce, queryGetter, stateGetter, ephemeralContext);
 
         bool ShouldForce()
         {
-            time -= Time.GetDelta(); 
-            return time <= 0;
+            return Time.ElapsedTime - startTime >= afterSeconds;
         }
     }
     
@@ -246,14 +245,13 @@ public sealed class ActionWindow
 
     public ActionWindow SetEnd(float afterSeconds)
     {
-        float time = afterSeconds;
+        float startTime = Time.ElapsedTime;
 
         return SetEnd(ShouldEnd);
 
         bool ShouldEnd()
         {
-            time -= Time.GetDelta();;
-            return time <= 0;
+            return Time.ElapsedTime - startTime >= afterSeconds;
         }
     }
 
@@ -298,6 +296,7 @@ public sealed class ActionWindow
         {
             End();
         }
+        Time.Update();
     }
     #endregion
 }
