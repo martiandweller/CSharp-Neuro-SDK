@@ -102,7 +102,6 @@ public class GameInformation(Game gameClass) : GameComponent(gameClass)
     {
         if (_hasShownWin)
         {
-            Console.WriteLine($"You should use space to reset the game");
             return;
         }
         
@@ -217,7 +216,7 @@ public class ServerChoice(GameInformation gameInformation) : NeuroAction<int>
                 break;
             default:
                 choice = 4;
-                return ExecutionResult.Failure("IDK what happened here");
+                return ExecutionResult.ModFailure($"Desired choice was an incorrect value, this is most likely an issue with the integration. {desiredChoice}");
         }
         return ExecutionResult.Success();
     }
