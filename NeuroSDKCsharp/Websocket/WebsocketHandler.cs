@@ -145,7 +145,6 @@ public class WebsocketHandler
 
     public void Send(OutgoingMessageHandler messageHandler) => _messageQueue.Enqueue(messageHandler);
 
-    // async void is bad, but I'm just gonna pray this works
     public async Task SendImmediate(OutgoingMessageHandler messageHandler)
     {
         string message = JsonSerialize.Serialize(messageHandler.GetWsMessage());
@@ -236,12 +235,9 @@ public class WebsocketHandler
     
     private void GetMessage(string messageData)
     {
-        Console.WriteLine($"Message data: {messageData}");
-        messageData = messageData.Replace("\'", "\"");
-        Console.WriteLine($"Message data: {messageData}");
         try
         {
-            Dictionary<string, Object>? dataArray = ProcessJsonMessage(messageData);
+            Dictionary<string, object>? dataArray = ProcessJsonMessage(messageData);
             if (dataArray is null) return;
             // command data
             _commandHandler.Handle((string)dataArray["command"], (IncomingData)dataArray["data"]);
@@ -252,26 +248,21 @@ public class WebsocketHandler
         }
     }
 
-    public Dictionary<string, Object>? ProcessJsonMessage(string messageData)
+    public Dictionary<string, object>? ProcessJsonMessage(string messageData)
     {
-            // messageData = @"{\""command\"":\""action\"",\""data\"":{\""id\"":\""123\"",\""name\"":\""name\"",\""Description\"":\""This is Description\""}}";
-            Console.WriteLine($"Start Try");
-            JObject message = JObject.Parse(messageData); // this just doesnt work idk why
-            Console.WriteLine($"after message  {message}");
-            
-            string? command = message["command"]?.Value<string>();
-            Console.WriteLine($"after command  {command}");
-            IncomingData data = new(message["data"]);
+        // messageData = @"{\""command\"":\""action\"",\""data\"":{\""id\"":\""123\"",\""name\"":\""name\"",\""Description\"":\""This is Description\""}}";
+        JObject message = JObject.Parse(messageData);
+        
+        string? command = message["command"]?.Value<string>();
+        IncomingData data = new(message["data"]);
 
-            Console.WriteLine($"after variable stuff   Message: {message}  Command: {command}   Data: {data.Data}");
-
-            if (command is null)
-            {
-                Console.WriteLine($"Command could not be deserialized");
-            }
-
-            Console.WriteLine($"Send to CommandHandler");
-            Dictionary<string, Object> dataDictionary = new Dictionary<string, object>{{"message", message},{"command",command},{"data",data}};
-            return dataDictionary;
+        if (command is null)
+        {
+            Console.WriteLine("Received command that could not be deserialized.");
+            return new();
+        }
+        
+        Dictionary<string, object> dataDictionary = new Dictionary<string, object>{{"message", message},{"command",command},{"data",data}};
+        return dataDictionary;
     }
 }
