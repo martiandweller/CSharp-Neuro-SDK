@@ -38,8 +38,8 @@ public class WebsocketHandler : GameComponent
     private ClientWebSocket? _webSocket = new ClientWebSocket();
 
     public readonly string GameName; // will be used for Messages
-    private MessageQueue _messageQueue;
-    private CommandHandler _commandHandler;
+    private readonly MessageQueue _messageQueue;
+    private readonly CommandHandler _commandHandler;
 
     private string? _uriString; // this will be changed to be able to be changed through file in future
     public override async void Initialize()
@@ -59,8 +59,6 @@ public class WebsocketHandler : GameComponent
         if (_tryingReconnect && fromUpdate) return;
         _tryingReconnect = true;
         await Task.Delay(TimeSpan.FromSeconds(ReconnectInterval));
-        _messageQueue = new MessageQueue();
-        _commandHandler = new CommandHandler();
         await StartWs();
     }
     
