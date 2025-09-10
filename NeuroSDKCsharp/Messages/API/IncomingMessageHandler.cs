@@ -1,3 +1,4 @@
+using NeuroSDKCsharp.Utilities.Logging;
 using NeuroSDKCsharp.Websocket;
 
 namespace NeuroSDKCsharp.Messages.API
@@ -19,9 +20,9 @@ namespace NeuroSDKCsharp.Messages.API
     
         ExecutionResult IIncomingMessageHandler.Validate(string command,IncomingData incomingData, out object? resultData)
         {
-            Console.WriteLine($"Before Result");
+            Log.LogTrace($"Before Result");
             ExecutionResult result = Validate(command, incomingData);
-            Console.WriteLine($"IncomingMessageHandler Validate Result no message:   {result}");
+            Log.LogTrace($"IncomingMessageHandler Validate Result no message:   {result}");
             resultData = null;
             return result;
         }
@@ -41,9 +42,9 @@ namespace NeuroSDKCsharp.Messages.API
     
         ExecutionResult IIncomingMessageHandler.Validate(string command,IncomingData incomingData, out object? resultData)
         {
-            Console.WriteLine($"Before Result");
+            Log.LogTrace($"Before Result");
             ExecutionResult result = Validate(command, incomingData, out var tResultData);
-            Console.WriteLine($"IncomingMessageHandler Result message:   {result.Message}");
+            Log.LogTrace($"IncomingMessageHandler Result message:   {result.Message}");
             resultData = tResultData;
             return result;
         }

@@ -1,3 +1,4 @@
+using NeuroSDKCsharp.Utilities.Logging;
 using System.ComponentModel;
 using System.Reflection;
 
@@ -7,7 +8,7 @@ internal static class ReflectionHelpers
     {
         public static IEnumerable<T> GetAllInDomain<T>()
         {
-            Console.WriteLine($"Running GetAllInDomain");
+            Log.LogTrace($"Running GetAllInDomain");
 
             IEnumerable<Type> types = AppDomain.CurrentDomain.GetAssemblies().Where(assembly => !assembly.FullName.Contains($"Steamworks")) // We remove steamworks to stop issues
                 .SelectMany(asm => asm.GetTypes())

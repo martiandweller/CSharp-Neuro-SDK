@@ -1,6 +1,7 @@
 using NeuroSDKCsharp.Actions;
 using NeuroSDKCsharp.Messages.API;
 using NeuroSDKCsharp.Messages.Outgoing;
+using NeuroSDKCsharp.Utilities.Logging;
 using NeuroSDKCsharp.Websocket;
 using Newtonsoft.Json.Linq;
 
@@ -40,8 +41,8 @@ public class Action : IncomingMessageHandler<Action.ResultData>
         {
             string? actionName = incomingData.Data?.Value<string>("name");
             string? actionStringifiedData = incomingData.Data?.Value<string>("data");
-            
-            Console.WriteLine($"name: {actionName}   data: {actionStringifiedData}");
+
+            Log.LogTrace($"name: {actionName}   data: {actionStringifiedData}");
 
             if (string.IsNullOrEmpty(actionName))
             {
@@ -50,8 +51,8 @@ public class Action : IncomingMessageHandler<Action.ResultData>
             }
             
             INeuroAction? registeredAction = NeuroActionHandler.GetRegistered(actionName);
-            
-            Console.WriteLine($"registered action: {registeredAction}");
+
+            Log.LogTrace($"registered action: {registeredAction}");
             
             if (registeredAction == null)
             {
@@ -75,7 +76,7 @@ public class Action : IncomingMessageHandler<Action.ResultData>
         }
         catch (Exception e)
         {
-            Console.WriteLine($"action failed caught {e}");
+            Log.LogError($"action failed caught {e}");
 
             return ExecutionResult.Failure("Action Failed Caught");
         }

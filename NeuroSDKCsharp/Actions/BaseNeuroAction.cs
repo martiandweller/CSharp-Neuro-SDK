@@ -1,4 +1,5 @@
 using NeuroSDKCsharp.Json;
+using NeuroSDKCsharp.Utilities.Logging;
 using NeuroSDKCsharp.Websocket;
 using Newtonsoft.Json;
 
@@ -25,7 +26,7 @@ public abstract class BaseNeuroAction : INeuroAction
 
         if (ActionWindow != null)
         {
-            Console.WriteLine($"base neuro action validation running");
+            Log.LogTrace($"base neuro action validation running");
             return ActionWindow.Result(result);
         }
 
@@ -48,7 +49,7 @@ public abstract class BaseNeuroAction : INeuroAction
         {
             if (ActionWindow != actionWindow)
             {
-                Console.WriteLine("Cannot set the action window for this action as it is already set");
+                Log.LogError("Cannot set the action window for this action as it is already set");
             }
             
             return;

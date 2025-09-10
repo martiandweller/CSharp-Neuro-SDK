@@ -1,3 +1,4 @@
+using NeuroSDKCsharp.Utilities.Logging;
 using Newtonsoft.Json.Linq;
 
 namespace NeuroSDKCsharp.Actions;
@@ -31,7 +32,7 @@ public class ActionData
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            Log.LogError(e.Message);
             actionData = null;
             return false;
         }

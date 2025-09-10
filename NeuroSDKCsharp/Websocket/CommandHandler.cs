@@ -1,6 +1,7 @@
-using System.Diagnostics;
 using NeuroSDKCsharp.Messages.API;
 using NeuroSDKCsharp.Utilities;
+using NeuroSDKCsharp.Utilities.Logging;
+using System.Diagnostics;
 
 namespace NeuroSDKCsharp.Websocket;
 
@@ -20,40 +21,40 @@ public class CommandHandler
         {
             foreach (IIncomingMessageHandler handler in _handlers)
             {
-                Console.WriteLine($"Running CommandHandler foreach    {handler}");
+                Log.LogTrace($"Running CommandHandler foreach    {handler}");
                 if (!handler.CanHandle(command)) continue;
 
                 ExecutionResult validationResult;
                 object? resultData;
                 try
                 {
-                    Console.WriteLine($"CommandHandler running validation");
+                    Log.LogTrace($"CommandHandler running validation");
                     validationResult = handler.Validate(command, data, out resultData);
                 }
                 catch (Exception e)
                 {
                     validationResult = ExecutionResult.Failure($"Issue with message handling {e.Message}");
-                    Console.WriteLine(e);
+                    Log.LogError(e.Message);
                     resultData = null;  
                 }
 
                 if (!validationResult.Successful)
                 {
-                    Console.WriteLine("Unsuccessful execution result when handling message");
+                    Log.LogError("Unsuccessful execution result when handling message");
                 }
             
                 handler.ReportResult(resultData, validationResult);
 
                 if (validationResult.Successful)
                 {
-                    Console.WriteLine($"CommandHandler validation successful");
+                    Log.LogTrace($"CommandHandler validation successful");
                     handler.Execute(resultData);
                 }
             }
         }
         catch (Exception e)
         {
-            Console.WriteLine($"Issue in Handle \n  {e}");
+            Log.LogError($"Issue in Handle \n  {e}");
             throw;
         }
         
