@@ -8,7 +8,7 @@ public sealed class ActionWindow
 {
     #region Create
 
-    private static bool _createdCorrectly = false;
+    private static bool _createdCorrectly;
 
     private ActionWindow()
     {
@@ -25,7 +25,7 @@ public sealed class ActionWindow
         catch (Exception e)
         {
             _createdCorrectly = false;
-            Console.WriteLine(e);
+            Logger.Error($"Issue with creating action window: {e}");
             throw;
         }
     }
@@ -34,7 +34,7 @@ public sealed class ActionWindow
     {
         if (!_createdCorrectly)
         {
-            Console.WriteLine($"ActionWindow was not created correctly, you should use the Create method");
+            Logger.Error($"ActionWindow was not created correctly, you should use the Create method");
         }
     }
 
@@ -56,7 +56,7 @@ public sealed class ActionWindow
     {
         if (CurrentState != State.Building)
         {
-            Console.WriteLine("Cannot change action window after it has been registered");
+            Logger.Error("Cannot change action window after it has been registered");
             return false;
         }
 
@@ -70,13 +70,13 @@ public sealed class ActionWindow
     {
         if (CurrentState != State.Building)
         {
-            Console.WriteLine("Cannot register action window more than once");
+            Logger.Error("Cannot register action window more than once");
             return;
         }
 
         if (_actions.Count == 0)
         {
-            Console.WriteLine("Cannot register action window with not actions");
+            Logger.Error("Cannot register an action window with no actions");
             return;
         }
 
@@ -126,7 +126,7 @@ public sealed class ActionWindow
         {
             if (action.ActionWindow != this)
             {
-                Console.WriteLine($"Cannot add action {action.Name} to this action window as it is already in another action window");
+                Logger.Error($"Cannot add action {action.Name} to this action window as it is already in another action window");
             }
 
             return this;
@@ -136,7 +136,7 @@ public sealed class ActionWindow
 
         if (_actions.Any(a => a.Name == action.Name))
         {
-            Console.WriteLine($"Cannot add two action that have the same name. The name was {action.Name}");
+            Logger.Error($"Cannot add two action that have the same name. The name was {action.Name}");
             return this;
         }
         
@@ -258,7 +258,7 @@ public sealed class ActionWindow
     public void End()
     {
         if (CurrentState >= State.Ended) return;
-        Console.WriteLine($"Ending Actionwindow");
+        Logger.Info($"Ending action window");
         
         NeuroActionHandler.UnregisterActions(_actions);
         _shouldForceFunc = null;

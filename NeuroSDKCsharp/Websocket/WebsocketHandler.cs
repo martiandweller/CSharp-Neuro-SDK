@@ -2,6 +2,7 @@ using System.Net.WebSockets;
 using System.Text;
 using NeuroSDKCsharp.Json;
 using NeuroSDKCsharp.Messages.API;
+using NeuroSDKCsharp.Utilities;
 using Newtonsoft.Json.Linq;
 
 namespace NeuroSDKCsharp.Websocket;
@@ -24,8 +25,7 @@ public class WebsocketHandler
     {
         get
         {
-            if (_instance is null)
-                Console.WriteLine("WebsocketHandlerInstance was accessed without an instance being present");
+            if (_instance is null) Logger.Error("WebsocketHandlerInstance was accessed without an instance being present");
             return _instance;
         }
         private set => _instance = value;
@@ -48,7 +48,7 @@ public class WebsocketHandler
         }
         catch (Exception e)
         {
-            Console.WriteLine($"issue in initialize: {e}");
+            Logger.Error($"issue in initialize: {e}");
         }
     }
 
@@ -62,7 +62,7 @@ public class WebsocketHandler
     
     private async Task StartWs()
     {
-        Console.WriteLine("This is start of Ws");
+        Logger.Info("This is start of Ws");
         Instance = this;
         
         try
@@ -72,7 +72,7 @@ public class WebsocketHandler
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            Logger.Error($"issue with closing websocket if already open: {e}");
             throw;
         }
 
@@ -82,15 +82,12 @@ public class WebsocketHandler
             _uriString = Environment.GetEnvironmentVariable("NEURO_SDK_WS_URL", EnvironmentVariableTarget.Process) ??
                          Environment.GetEnvironmentVariable("NEURO_SDK_WS_URL", EnvironmentVariableTarget.User) ??
                          Environment.GetEnvironmentVariable("NEURO_SDK_WS_URL", EnvironmentVariableTarget.Machine);
-            Console.WriteLine($"UriString: {_uriString}");
+            Logger.Info($"UriString: {_uriString}");
         }
         
         if (_uriString is null or "")
         {
-            string errorMessage =
-                "Could not get websocket URL. You need to set the NEURO_SDK_WS_URL environment variable";
-
-            Console.WriteLine(errorMessage);
+            Logger.Error("Could not get websocket URL. You need to set the NEURO_SDK_WS_URL environment variable");
             return;
         }
 
@@ -103,7 +100,7 @@ public class WebsocketHandler
         {
             await _webSocket.ConnectAsync(websocketUri, CancellationToken.None);
 
-            Console.WriteLine($"Starting Task    Websocket connected {_webSocket.State}");
+            Logger.Info($"Starting Task    Websocket state: {_webSocket.State}");
             
             _ = Task.Run(ReceiveMessage);
             _tryingReconnect = false;
@@ -112,7 +109,7 @@ public class WebsocketHandler
         {
             if (e is WebSocketException we && we.WebSocketErrorCode is WebSocketError.Faulted)
             {
-                Console.WriteLine($"Error code is {we.WebSocketErrorCode}  message: {we.Message}  error code: {we.ErrorCode}");
+                Logger.Error($"Error code is {we.WebSocketErrorCode}  message: {we.Message}  error code: {we.ErrorCode}");
                 _ = Reconnect();
             }
         }
@@ -120,15 +117,11 @@ public class WebsocketHandler
 
     private async Task SendTask(OutgoingMessageHandler handler)
     {
-        Console.WriteLine($"running SendTask");
-
         WsMessage wsMessage = handler.GetWsMessage(); 
-        
-        Console.WriteLine($"wsMessage before serialize {wsMessage}");
         
         string message = JsonSerialize.Serialize(wsMessage);
         
-        Console.WriteLine($"Sending the Ws Message {message}");
+        Logger.Info($"Sending the Ws Message {message}");
 
         var sendBytes = Encoding.UTF8.GetBytes(message);
         
@@ -138,7 +131,7 @@ public class WebsocketHandler
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            Logger.Error($"error when sending message: {e}");
             _messageQueue.Enqueue(handler);
         }
     }
@@ -153,10 +146,10 @@ public class WebsocketHandler
         
         if (_webSocket.State is not WebSocketState.Open)
         {
-            Console.WriteLine($"Websocket is not open. Could not send message: {message}");
+            Logger.Error($"Websocket is not open. Could not send message: {message}");
         }
 
-        Console.WriteLine($"Sending Immediate message {message}");
+        Logger.Info($"Sending Immediate message {message}");
 
         var sendBytes = Encoding.UTF8.GetBytes(message);
         await _webSocket!.SendAsync(sendBytes, WebSocketMessageType.Text, false, CancellationToken.None);
@@ -164,7 +157,7 @@ public class WebsocketHandler
 
     private async Task ReceiveMessage()
     {
-        Console.WriteLine($"Start of ReceiveMessage");
+        Logger.Info($"Start of ReceiveMessage");
 
         if (_webSocket is null) return;
         
@@ -172,9 +165,6 @@ public class WebsocketHandler
         
         while (_webSocket.State == WebSocketState.Open)
         {
-            Console.WriteLine($"message queue count : {_messageQueue.Count}");
-            
-            Console.WriteLine($"Current websocket state Start {_webSocket.State}");
             WebSocketReceiveResult result;
             MemoryStream memoryStream = new MemoryStream();
             do
@@ -183,11 +173,11 @@ public class WebsocketHandler
                 memoryStream.Write(buffer,0,result.Count);
             } while (!result.EndOfMessage);
             
-            Console.WriteLine($"Receive message result: {result} || {result.MessageType}  || {result.CloseStatus}");
+            Logger.Info($"Receive message result: {result} || {result.MessageType}  || {result.CloseStatus}");
             
             if (result.MessageType == WebSocketMessageType.Close)
             {
-                Console.WriteLine("Server closed connection.");
+                Logger.Warning("Server closed connection.");
                 await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
                 break;
             }
@@ -195,9 +185,7 @@ public class WebsocketHandler
             var memoryStreamArray = memoryStream.ToArray();
             var messageData = Encoding.UTF8.GetString(memoryStreamArray,0,memoryStreamArray.Length);
             
-            Console.WriteLine($"Running MessageData");
             GetMessage(messageData);
-            Console.WriteLine($"After GetMessage");
         }
 
         if (_webSocket.State != WebSocketState.Open)
@@ -223,13 +211,12 @@ public class WebsocketHandler
             while (_messageQueue.Count > 0)
             {
                 OutgoingMessageHandler handler = _messageQueue.Dequeue()!;
-                Console.WriteLine(handler);
                 await SendTask(handler);
             }
         }
         catch (Exception e)
         {
-            Console.WriteLine($"Issue in update of ws: {e}");
+            Logger.Error($"Issue in update of ws: {e}");
         }
     }
     
@@ -238,18 +225,16 @@ public class WebsocketHandler
         try
         {
             Dictionary<string, object> dataArray = ProcessJsonMessage(messageData);
-            // command data
             _commandHandler.Handle((string)dataArray["command"], (IncomingData)dataArray["data"]);
         }
         catch (Exception e)
         {
-            Console.WriteLine($"Catching error in GetMessage try   {e}");
+            Logger.Error($"Error in GetMessage try   {e}");
         }
     }
 
     public Dictionary<string, object> ProcessJsonMessage(string messageData)
     {
-        // messageData = @"{\""command\"":\""action\"",\""data\"":{\""id\"":\""123\"",\""name\"":\""name\"",\""Description\"":\""This is Description\""}}";
         JObject message = JObject.Parse(messageData);
         
         string? command = message["command"]?.Value<string>();
@@ -257,7 +242,7 @@ public class WebsocketHandler
 
         if (command is null)
         {
-            Console.WriteLine("Received command that could not be deserialized.");
+            Logger.Warning("Received command that could not be deserialized.");
             return new();
         }
         
