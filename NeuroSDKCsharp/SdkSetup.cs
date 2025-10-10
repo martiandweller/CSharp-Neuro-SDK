@@ -1,3 +1,5 @@
+using NeuroSDKCsharp.Actions;
+using NeuroSDKCsharp.Utilities;
 using NeuroSDKCsharp.Websocket;
 
 namespace NeuroSDKCsharp;
@@ -8,5 +10,8 @@ public static class SdkSetup
     {
         WebsocketHandler ws = new WebsocketHandler(game,uriString);
 	    ws.Initialize();
+	    
+	    ExitApplicationEvent.Initialize();
+	    ExitApplicationEvent.ApplicationExiting += NeuroActionHandler.OnApplicationQuit;
     }
 }
