@@ -237,8 +237,7 @@ public class WebsocketHandler
     {
         try
         {
-            Dictionary<string, object>? dataArray = ProcessJsonMessage(messageData);
-            if (dataArray is null) return;
+            Dictionary<string, object> dataArray = ProcessJsonMessage(messageData);
             // command data
             _commandHandler.Handle((string)dataArray["command"], (IncomingData)dataArray["data"]);
         }
@@ -248,7 +247,7 @@ public class WebsocketHandler
         }
     }
 
-    public Dictionary<string, object>? ProcessJsonMessage(string messageData)
+    public Dictionary<string, object> ProcessJsonMessage(string messageData)
     {
         // messageData = @"{\""command\"":\""action\"",\""data\"":{\""id\"":\""123\"",\""name\"":\""name\"",\""Description\"":\""This is Description\""}}";
         JObject message = JObject.Parse(messageData);
