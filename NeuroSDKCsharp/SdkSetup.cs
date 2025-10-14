@@ -8,7 +8,8 @@ public static class SdkSetup
 {
     public static void Initialize(string game,string uriString)
     {
-        WebsocketHandler ws = new WebsocketHandler(game,uriString);
+	    TaskDispatcher.Initialize();
+	    WebsocketHandler ws = new WebsocketHandler(game,uriString);
 	    ws.Initialize();
 	    
 	    ExitApplicationEvent.Initialize();
